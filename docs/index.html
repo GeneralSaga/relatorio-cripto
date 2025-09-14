@@ -30,11 +30,19 @@
             padding: 4px 12px;
             border-radius: 9999px;
             font-weight: 700;
-            font-size: 1.25rem;
+            font-size: 1rem;
         }
         .info-green { background-color: rgba(124, 252, 0, 0.2); color: #7CFC00; }
         .info-yellow { background-color: rgba(255, 215, 0, 0.2); color: #FFD700; }
         .info-red { background-color: rgba(255, 69, 0, 0.2); color: #FF4500; }
+        .rsi-badge {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #e2e8f0;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-weight: 700;
+            font-size: 1rem;
+        }
         .text-gradient {
             background: linear-gradient(90deg, #6a85b9, #adc6e0);
             -webkit-background-clip: text;
@@ -126,13 +134,13 @@
 
             // Retorna um score numérico para ordenação
             if (rsi < 30) {
-                return { score: 3, label: 'Alto Potencial (Oversold)', class: 'info-green' };
+                return { score: 3, label: 'Alto Potencial', class: 'info-green' };
             } else if (rsi > 70) {
-                return { score: 1, label: 'Baixo Potencial (Overbought)', class: 'info-red' };
+                return { score: 1, label: 'Baixo Potencial', class: 'info-red' };
             } else if (priceChange < 0) {
-                return { score: 2, label: 'Potencial Moderado (Em queda)', class: 'info-yellow' };
+                return { score: 2, label: 'Potencial Moderado', class: 'info-yellow' };
             } else {
-                return { score: 2, label: 'Potencial Moderado (Em alta)', class: 'info-green' };
+                return { score: 2, label: 'Potencial Moderado', class: 'info-green' };
             }
         };
 
@@ -159,15 +167,33 @@
             return Math.floor(Math.max(0, Math.min(100, rsi)));
         };
 
+        // Verifica se há dados suficientes para renderizar um gráfico
+        const hasValuationData = (asset) => asset.marketCap !== null && asset.marketCap > 0;
+        const hasSupplyData = (asset) => asset.circulatingSupply !== null && asset.circulatingSupply > 0;
+
         // Cria o card de cada ativo
         const createAssetCard = (asset) => {
             const { label: potentialLabel, class: potentialClass } = getPotentialScore(asset);
+            const rsiValue = calculateRSI(asset.price_change_percentage_24h);
+            const rsiText = rsiValue === 'N/A' ? 'RSI: N/A' : `RSI: ${rsiValue}`;
+
+            // Conteúdo condicional para os gráficos
+            const valuationContent = hasValuationData(asset) ?
+                `<div class="chart-container"><canvas id="valuation-${asset.id}"></canvas></div>` :
+                `<div class="text-center text-sm text-slate-500">Dados de valuation indisponíveis.</div>`;
+
+            const supplyContent = hasSupplyData(asset) ?
+                `<div class="chart-container"><canvas id="supply-${asset.id}"></canvas></div>` :
+                `<div class="text-center text-sm text-slate-500">Dados de oferta indisponíveis.</div>`;
             
             return `
                 <div class="bg-blue-900 rounded-2xl p-6 shadow-2xl border border-blue-800">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
                         <h3 class="text-2xl font-bold text-white">${asset.name}</h3>
-                        <div class="mt-2 sm:mt-0 ${potentialClass} info-badge">${potentialLabel}</div>
+                        <div class="flex items-center gap-2 mt-2 sm:mt-0">
+                            <div class="${potentialClass} info-badge">${potentialLabel}</div>
+                            <div class="rsi-badge">${rsiText}</div>
+                        </div>
                     </div>
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-center mb-6">
                         <div>
@@ -189,15 +215,11 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <h4 class="font-semibold text-center mb-2 text-slate-300">Valuation</h4>
-                            <div class="chart-container">
-                                <canvas id="valuation-${asset.id}"></canvas>
-                            </div>
+                            ${valuationContent}
                         </div>
                         <div>
                             <h4 class="font-semibold text-center mb-2 text-slate-300">Oferta</h4>
-                            <div class="chart-container">
-                                <canvas id="supply-${asset.id}"></canvas>
-                            </div>
+                            ${supplyContent}
                         </div>
                     </div>
                 </div>
@@ -231,38 +253,46 @@
                     }
                 }
             };
-            const valuationCtx = document.getElementById(`valuation-${asset.id}`).getContext('2d');
-            if (valuationCtx) {
-                charts[`valuation-${asset.id}`] = new Chart(valuationCtx, {
-                    type: 'bar',
-                    data: {
-                        labels: [wrapLabel('Market Cap'), wrapLabel('Valor Diluído')],
-                        datasets: [{
-                            label: 'Valuation',
-                            data: [asset.marketCap, asset.fdv],
-                            backgroundColor: ['#6a85b9', '#adc6e0'],
-                            borderRadius: 4,
-                        }]
-                    },
-                    options: { ...commonTooltipConfig, responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { ticks: { color: '#94a3b8' } } } }
-                });
+            
+            // Renderiza o gráfico de Valuation apenas se os dados existirem
+            if (hasValuationData(asset)) {
+                const valuationCtx = document.getElementById(`valuation-${asset.id}`).getContext('2d');
+                if (valuationCtx) {
+                    charts[`valuation-${asset.id}`] = new Chart(valuationCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: [wrapLabel('Market Cap'), wrapLabel('Valor Diluído')],
+                            datasets: [{
+                                label: 'Valuation',
+                                data: [asset.marketCap, asset.fdv],
+                                backgroundColor: ['#6a85b9', '#adc6e0'],
+                                borderRadius: 4,
+                            }]
+                        },
+                        options: { ...commonTooltipConfig, responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { ticks: { color: '#94a3b8' } } } }
+                    });
+                }
             }
-            const supplyCtx = document.getElementById(`supply-${asset.id}`).getContext('2d');
-            if (supplyCtx) {
-                const maxSupply = asset.maxSupply || (asset.circulatingSupply ? asset.circulatingSupply * 1.5 : 0);
-                charts[`supply-${asset.id}`] = new Chart(supplyCtx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['Em Circulação', wrapLabel('Não Circulante')],
-                        datasets: [{
-                            data: [asset.circulatingSupply || 0, asset.maxSupply ? maxSupply - asset.circulatingSupply : (asset.circulatingSupply ? maxSupply - asset.circulatingSupply : 0)],
-                            backgroundColor: ['#5B84B1', '#2f4c7d'],
-                            borderColor: '#0d1a2f',
-                            borderWidth: 4,
-                        }]
-                    },
-                    options: { ...commonTooltipConfig, responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { display: true, position: 'bottom', labels: { color: '#94a3b8' } } } }
-                });
+
+            // Renderiza o gráfico de Supply apenas se os dados existirem
+            if (hasSupplyData(asset)) {
+                const supplyCtx = document.getElementById(`supply-${asset.id}`).getContext('2d');
+                if (supplyCtx) {
+                    const maxSupply = asset.maxSupply || (asset.circulatingSupply ? asset.circulatingSupply * 1.5 : 0);
+                    charts[`supply-${asset.id}`] = new Chart(supplyCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Em Circulação', wrapLabel('Não Circulante')],
+                            datasets: [{
+                                data: [asset.circulatingSupply || 0, asset.maxSupply ? maxSupply - asset.circulatingSupply : (asset.circulatingSupply ? maxSupply - asset.circulatingSupply : 0)],
+                                backgroundColor: ['#5B84B1', '#2f4c7d'],
+                                borderColor: '#0d1a2f',
+                                borderWidth: 4,
+                            }]
+                        },
+                        options: { ...commonTooltipConfig, responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { display: true, position: 'bottom', labels: { color: '#94a3b8' } } } }
+                    });
+                }
             }
         };
         
@@ -338,7 +368,7 @@
                     .slice(0, 10);
 
                 const recentlyLaunched = allMappedData
-                    .filter(item => item.marketCap > 100000 && (item.total_volume / item.marketCap) > 0.2)
+                    .filter(item => item.marketCap > 1000 && item.total_volume && (item.total_volume / item.marketCap) > 0.1)
                     .sort((a, b) => (b.total_volume / b.marketCap) - (a.total_volume / a.marketCap))
                     .slice(0, 10);
                     

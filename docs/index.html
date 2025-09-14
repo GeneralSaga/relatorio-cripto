@@ -85,12 +85,12 @@
             </section>
 
             <section id="most-potential" class="mb-20">
-                <h2 class="text-3xl md:text-4xl font-bold mb-8 text-center text-gradient">Ativos com Maior Potencial Hoje</h2>
+                <h2 class="text-3xl md:text-4xl font-bold mb-8 text-center text-gradient">Ativos em Destaque Hoje</h2>
                 <div id="potential-list" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8"></div>
             </section>
             
             <section id="recently-launched" class="mb-20">
-                <h2 class="text-3xl md:text-4xl font-bold mb-8 text-center text-gradient">Recém-Lançadas com Potencial</h2>
+                <h2 class="text-3xl md:text-4xl font-bold mb-8 text-center text-gradient">Recém-Lançadas em Destaque</h2>
                 <div id="new-list" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8"></div>
             </section>
             
@@ -134,13 +134,13 @@
 
             // Retorna um score numérico para ordenação
             if (rsi < 30) {
-                return { score: 3, label: 'Alto Potencial', class: 'info-green' };
+                return { score: 3, label: 'Forte Sinal Técnico', class: 'info-green' };
             } else if (rsi > 70) {
-                return { score: 1, label: 'Baixo Potencial', class: 'info-red' };
+                return { score: 1, label: 'Sinal Técnico Fraco', class: 'info-red' };
             } else if (priceChange < 0) {
-                return { score: 2, label: 'Potencial Moderado', class: 'info-yellow' };
+                return { score: 2, label: 'Sinal Técnico Moderado', class: 'info-yellow' };
             } else {
-                return { score: 2, label: 'Potencial Moderado', class: 'info-green' };
+                return { score: 2, label: 'Sinal Técnico Moderado', class: 'info-green' };
             }
         };
 
@@ -168,8 +168,8 @@
         };
 
         // Verifica se há dados suficientes para renderizar um gráfico
-        const hasValuationData = (asset) => asset.marketCap !== null && asset.marketCap > 0;
-        const hasSupplyData = (asset) => asset.circulatingSupply !== null && asset.circulatingSupply > 0;
+        const hasValuationData = (asset) => typeof asset.marketCap === 'number' && asset.marketCap > 0;
+        const hasSupplyData = (asset) => typeof asset.circulatingSupply === 'number' && asset.circulatingSupply > 0;
 
         // Cria o card de cada ativo
         const createAssetCard = (asset) => {
@@ -363,22 +363,22 @@
                 const allMappedData = apiData.map(mapData);
                 
                 const mostPotential = allMappedData
-                    .filter(item => item.price_change_percentage_24h !== null)
+                    .filter(item => typeof item.price_change_percentage_24h === 'number')
                     .sort((a, b) => getPotentialScore(b).score - getPotentialScore(a).score)
                     .slice(0, 10);
 
                 const recentlyLaunched = allMappedData
-                    .filter(item => item.marketCap > 1000 && item.total_volume && (item.total_volume / item.marketCap) > 0.1)
-                    .sort((a, b) => (b.total_volume / b.marketCap) - (a.total_volume / a.marketCap))
+                    .filter(item => typeof item.marketCap === 'number' && item.marketCap > 1000 && item.marketCap < 10000000 && typeof item.total_volume === 'number' && item.total_volume > 0)
+                    .sort((a, b) => b.total_volume - a.total_volume)
                     .slice(0, 10);
                     
                 const fundamentalCryptos = allMappedData
-                    .filter(item => item.marketCap > 1e9)
+                    .filter(item => typeof item.marketCap === 'number' && item.marketCap > 1e9)
                     .sort((a, b) => b.marketCap - a.marketCap)
                     .slice(0, 10);
                     
                 const utilityTokens = allMappedData
-                    .filter(item => item.marketCap > 100000 && item.marketCap < 1e9)
+                    .filter(item => typeof item.marketCap === 'number' && item.marketCap > 100000 && item.marketCap < 1e9)
                     .sort((a, b) => b.marketCap - a.marketCap)
                     .slice(0, 10);
                     
@@ -389,7 +389,7 @@
                                            item.name.toLowerCase().includes('pepe') ||
                                            item.name.toLowerCase().includes('floki') ||
                                            item.name.toLowerCase().includes('bonk');
-                        return item.marketCap > 10000 && isMemecoin;
+                        return typeof item.marketCap === 'number' && item.marketCap > 10000 && isMemecoin;
                     })
                     .sort((a, b) => b.marketCap - a.marketCap)
                     .slice(0, 10);

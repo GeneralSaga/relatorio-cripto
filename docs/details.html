@@ -293,8 +293,8 @@
                     console.log(`[DEBUG] Chamando API para o ativo: ${id}`);
                     const res = await fetch(`https://api.coingecko.com/api/v3/coins/${id}?localization=false&tickers=false&market_data=false&community_data=false&developer_data=false&sparkline=false&x_cg_demo_api_key=${API_KEY}`);
                     if (!res.ok) {
-                        console.error(`[ERRO] Falha ao buscar detalhes para o ID ${id}. Status: ${res.status}`);
-                        throw new Error(`Erro na busca de detalhes do ativo. Status: ${res.status}`);
+                        console.log(`[ERRO] Falha ao buscar detalhes para o ID ${id}. Status: ${res.status}`);
+                        continue;
                     }
                     const coin = await res.json();
                     detailsMap[id] = { genesis_date: coin.genesis_date, categories: coin.categories?.filter(c => c) };

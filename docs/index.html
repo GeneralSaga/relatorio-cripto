@@ -415,7 +415,7 @@
                     .slice(0, 10);
 
                 const recentlyLaunched = allMappedData
-                    .filter(item => typeof item.marketCap === 'number' && item.marketCap > 1000 && item.marketCap < 10000000 && typeof item.total_volume === 'number' && item.total_volume > 0)
+                    .filter(item => typeof item.marketCap === 'number' && typeof item.volume === 'number' && item.volume / item.marketCap > 0.5)
                     .sort((a, b) => getPotentialScore(b).score - getPotentialScore(a).score)
                     .slice(0, 10);
                     

@@ -117,7 +117,7 @@
             if (!asset || !asset.marketCap || asset.marketCap === 0) return 0;
             let score = 0;
             const priceChange = asset.price_change_percentage_24h;
-            const volToMcRatio = asset.volume / asset.marketCap;
+            const volToMcRatio = asset.total_volume / asset.marketCap;
 
             // Pontuação baseada na variação de preço em 24h
             if (priceChange > 15) score += 3;
@@ -185,7 +185,7 @@
             const category = asset.categories?.[0] || "Sem Categoria";
 
             const valuationContent = asset.marketCap > 0 ? `<div class="chart-container"><canvas id="valuation-${asset.id}"></canvas></div>` : `<div class="h-[200px] flex items-center justify-center text-center text-sm text-slate-500">Dados indisponíveis.</div>`;
-            const supplyContent = (asset.circulatingSupply > 0 && (asset.maxSupply || asset.totalSupply)) ? `<div class="chart-container"><canvas id="supply-${asset.id}"></canvas></div>` : `<div class="h-[200px] flex items-center justify-center text-center text-sm text-slate-500">Dados indisponíveis.</div>`;
+            const supplyContent = (asset.circulating_supply > 0 && (asset.max_supply || asset.total_supply)) ? `<div class="chart-container"><canvas id="supply-${asset.id}"></canvas></div>` : `<div class="h-[200px] flex items-center justify-center text-center text-sm text-slate-500">Dados indisponíveis.</div>`;
             
             return `
                 <div class="bg-blue-900 rounded-2xl p-6 shadow-2xl border border-blue-800 crypto-card-container">
@@ -200,7 +200,7 @@
                         <span class="bg-slate-700 text-slate-300 rounded-full px-4 py-1 text-sm font-medium">${category}</span>
                     </div>
                     <div class="grid grid-cols-3 gap-4 text-center mb-6">
-                        <div><p class="text-sm text-blue-500">Preço 📈</p><p class="text-xl font-semibold text-white">${formatNumber(asset.price)}</p></div>
+                        <div><p class="text-sm text-blue-500">Preço 📈</p><p class="text-xl font-semibold text-white">${formatNumber(asset.current_price)}</p></div>
                         <div class="tooltip-container"><p class="text-sm text-blue-500">Market Cap 📊</p><p class="text-xl font-semibold text-white">${formatNumber(asset.marketCap)}</p><span class="tooltip-text">Valor total das moedas em circulação.</span></div>
                         <div><p class="text-sm text-blue-500">Dias no Mercado ⏳</p><p class="text-xl font-semibold text-white">${daysOnMarket}</p></div>
                     </div>
@@ -225,7 +225,7 @@
                         data: {
                             labels: ['Market Cap', 'Valor Diluído'],
                             datasets: [{
-                                data: [asset.marketCap, asset.fdv || asset.marketCap],
+                                data: [asset.marketCap, asset.fully_diluted_valuation || asset.marketCap],
                                 backgroundColor: ['#6a85b9', '#adc6e0']
                             }]
                         },
@@ -244,17 +244,17 @@
                 }
             }
 
-            if (asset.circulatingSupply > 0) {
+            if (asset.circulating_supply > 0) {
                 const supplyCtx = document.getElementById(`supply-${asset.id}`)?.getContext('2d');
                 if (supplyCtx) {
-                    const total = asset.maxSupply || asset.totalSupply;
-                    const nonCirculating = total > asset.circulatingSupply ? total - asset.circulatingSupply : 0;
+                    const total = asset.max_supply || asset.total_supply;
+                    const nonCirculating = total > asset.circulating_supply ? total - asset.circulating_supply : 0;
                     charts[`supply-${asset.id}`] = new Chart(supplyCtx, {
                         type: 'doughnut',
                         data: {
                             labels: ['Em Circulação', 'Não Circulante'],
                             datasets: [{
-                                data: [asset.circulatingSupply, nonCirculating],
+                                data: [asset.circulating_supply, nonCirculating],
                                 backgroundColor: ['#5B84B1', '#2f4c7d'],
                                 borderColor: '#0d1a2f'
                             }]
@@ -390,9 +390,9 @@
                 
                 // ETAPA 4: Mapear, enriquecer e classificar os dados
                 const mapAndEnrich = (coin) => ({
-                    id: coin.id, symbol: coin.symbol, name: coin.name, price: coin.current_price, marketCap: coin.market_cap,
-                    fdv: coin.fully_diluted_valuation, volume: coin.total_volume, circulatingSupply: coin.circulating_supply,
-                    maxSupply: coin.max_supply, totalSupply: coin.total_supply, price_change_percentage_24h: coin.price_change_percentage_24h,
+                    id: coin.id, symbol: coin.symbol, name: coin.name, current_price: coin.current_price, marketCap: coin.market_cap,
+                    fully_diluted_valuation: coin.fully_diluted_valuation, total_volume: coin.total_volume, circulating_supply: coin.circulating_supply,
+                    max_supply: coin.max_supply, total_supply: coin.total_supply, price_change_percentage_24h: coin.price_change_percentage_24h,
                     genesis_date: detailsMap[coin.id]?.genesis_date, categories: detailsMap[coin.id]?.categories || ['Geral'],
                 });
                 
@@ -426,3 +426,4 @@
     </script>
 </body>
 </html>
+

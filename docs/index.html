@@ -117,93 +117,6 @@
     <script>
         let charts = {}; // Objeto para armazenar as instâncias dos gráficos e gerenciá-las.
         
-        // Mapeamento manual de categorias, pois a API de mercados não as fornece
-        const CATEGORIES = {
-            "bitcoin": "Criptomoeda",
-            "ethereum": "Criptomoeda",
-            "tether": "Stablecoin",
-            "solana": "Criptomoeda",
-            "bnb": "Token de Exchange",
-            "xrp": "Pagamento",
-            "dogecoin": "Memecoin",
-            "cardano": "Criptomoeda",
-            "shiba-inu": "Memecoin",
-            "avalanche-2": "Criptomoeda",
-            "polkadot": "Web3",
-            "chainlink": "Oracle",
-            "polygon": "Layer 2",
-            "litecoin": "Criptomoeda",
-            "tron": "Smart Contract",
-            "uniswap": "DEX",
-            "dai": "Stablecoin",
-            "cosmos": "Ecosystem",
-            "binance-usd": "Stablecoin",
-            "leo-token": "Token de Exchange",
-            "okb": "Token de Exchange",
-            "bitcoin-cash": "Criptomoeda",
-            "stellar": "Pagamento",
-            "monero": "Privacidade",
-            "ethereum-classic": "Criptomoeda",
-            "aptos": "Smart Contract",
-            "hedera-hashgraph": "Smart Contract",
-            "filecoin": "Armazenamento",
-            "lido-dao": "LSD",
-            "cronos": "Criptomoeda",
-            "internet-computer": "Web3",
-            "arbitrum": "Layer 2",
-            "the-graph": "Dados",
-            "near": "Smart Contract",
-            "vechain": "Supply Chain",
-            "render-token": "IA",
-            "algorand": "Smart Contract",
-            "quant-network": "Interoperabilidade",
-            "rocket-pool": "LSD",
-            "elrond": "Smart Contract",
-            "sui": "Smart Contract",
-            "fantom": "Smart Contract",
-            "axelar": "Interoperabilidade",
-            "injective-protocol": "DeFi",
-            "flow": "Gaming",
-            "pepe": "Memecoin",
-            "bonk": "Memecoin",
-            "floki": "Memecoin",
-            "terra-classic": "Recomendação (LUNA)",
-            "eos": "Smart Contract",
-            "pax-gold": "Ouro Tokenizado",
-            "frax-share": "Algorítmico Stable",
-            "sei-network": "Blockchain",
-            "aave": "Empréstimos DeFi",
-            "maker": "DeFi",
-            "kava": "DeFi",
-            "the-sandbox": "Metaverso",
-            "decentraland": "Metaverso",
-            "pancakeswap-token": "DEX",
-            "thorchain": "Interoperabilidade",
-            "curve-dao-token": "DeFi",
-            "gmx": "Derivativos",
-            "mina-protocol": "Privacidade",
-            "oasis-network": "Privacidade",
-            "immutable-x": "Gaming/NFTs",
-            "zilliqa": "Smart Contract",
-            "conflux-token": "PoW/PoS",
-            "enjincoin": "Gaming/NFTs",
-            "gala": "Gaming",
-            "ocean-protocol": "IA",
-            "fetch-ai": "IA",
-            "singularitynet": "IA",
-            "wazirx": "Exchange",
-            "ankr": "Web3",
-            "audius": "Música",
-            "compound-governance-token": "Empréstimos DeFi",
-            "yearn-finance": "DeFi",
-            "looksrare": "NFTs",
-            "degen": "Social",
-            "terra-luna": "Ecossistema",
-            "kaspa": "Criptomoeda",
-            "xai": "Gaming",
-            "catcoin": "Memecoin",
-        };
-
         // Funções de formatação de dados
         const formatNumber = (num) => {
             if (num === null || num === undefined) return '$N/A';
@@ -263,7 +176,7 @@
             const { label: potentialLabel, class: potentialClass } = getPotentialScore(asset);
             const rsiValue = calculateRSI(asset.price_change_percentage_24h);
             const rsiText = rsiValue === 'N/A' ? 'RSI: N/A' : `RSI: ${rsiValue}`;
-            const category = CATEGORIES[asset.id] || "Sem Categoria";
+            const category = (asset.categories && asset.categories.length > 0) ? asset.categories[0] : "Sem Categoria";
 
             // Conteúdo condicional para os gráficos
             const valuationContent = hasValuationData(asset) ?
@@ -487,12 +400,29 @@
                     .sort((a, b) => getPotentialScore(b).score - getPotentialScore(a).score)
                     .slice(0, 10);
 
+                // Função para buscar categorias detalhadas para cada ativo
+                const fetchCategoriesForList = async (list) => {
+                    const results = await Promise.all(list.map(async (asset) => {
+                        try {
+                            const response = await fetch(`https://api.coingecko.com/api/v3/coins/${asset.id}?x_cg_demo_api_key=${apiKey}`);
+                            const data = await response.json();
+                            asset.categories = data.categories;
+                            return asset;
+                        } catch (error) {
+                            console.error(`Erro ao buscar categoria para ${asset.id}: ${error.message}`);
+                            asset.categories = []; // Atribui array vazio em caso de erro
+                            return asset;
+                        }
+                    }));
+                    return results;
+                };
+
                 const finalData = {
-                    mostPotential: mostPotential,
-                    recentlyLaunched: recentlyLaunched,
-                    cryptos: fundamentalCryptos,
-                    tokens: utilityTokens,
-                    memecoins: memecoins
+                    mostPotential: await fetchCategoriesForList(mostPotential),
+                    recentlyLaunched: await fetchCategoriesForList(recentlyLaunched),
+                    cryptos: await fetchCategoriesForList(fundamentalCryptos),
+                    tokens: await fetchCategoriesForList(utilityTokens),
+                    memecoins: await fetchCategoriesForList(memecoins)
                 };
 
                 renderReport(finalData);

@@ -432,10 +432,10 @@
                 const memecoins = allMappedData
                     .filter(item => {
                         const isMemecoin = item.name.toLowerCase().includes('doge') ||
-                                           item.name.toLowerCase().includes('shiba') ||
-                                           item.name.toLowerCase().includes('pepe') ||
-                                           item.name.toLowerCase().includes('floki') ||
-                                           item.name.toLowerCase().includes('bonk');
+                                               item.name.toLowerCase().includes('shiba') ||
+                                               item.name.toLowerCase().includes('pepe') ||
+                                               item.name.toLowerCase().includes('floki') ||
+                                               item.name.toLowerCase().includes('bonk');
                         return typeof item.marketCap === 'number' && item.marketCap > 10000 && isMemecoin;
                     })
                     .sort((a, b) => getPotentialScore(b).score - getPotentialScore(a).score)

@@ -11,21 +11,21 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #0d1a2f; color: #e2e8f0; }
-       .text-blue-500 { color: #5B84B1; }
-       .bg-blue-900 { background-color: #1c3358; }
-       .chart-container { position: relative; width: 100%; max-width: 400px; margin-left: auto; margin-right: auto; height: 200px; max-height: 220px; }
-       .info-badge { padding: 4px 12px; border-radius: 9999px; font-weight: 700; font-size: 1rem; }
-       .info-green { background-color: rgba(124, 252, 0, 0.2); color: #7CFC00; }
-       .info-yellow { background-color: rgba(255, 215, 0, 0.2); color: #FFD700; }
-       .info-red { background-color: rgba(255, 69, 0, 0.2); color: #FF4500; }
-       .extra-badge { background-color: rgba(255, 255, 255, 0.1); color: #e2e8f0; padding: 4px 12px; border-radius: 9999px; font-weight: 700; font-size: 1rem; }
-       .text-gradient { background: linear-gradient(90deg, #6a85b9, #adc6e0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-       .spinner { border: 4px solid rgba(255, 255, 255, 0.1); border-left-color: #ffffff; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        .text-blue-500 { color: #5B84B1; }
+        .bg-blue-900 { background-color: #1c3358; }
+        .chart-container { position: relative; width: 100%; max-width: 400px; margin-left: auto; margin-right: auto; height: 200px; max-height: 220px; }
+        .info-badge { padding: 4px 12px; border-radius: 9999px; font-weight: 700; font-size: 1rem; }
+        .info-green { background-color: rgba(124, 252, 0, 0.2); color: #7CFC00; }
+        .info-yellow { background-color: rgba(255, 215, 0, 0.2); color: #FFD700; }
+        .info-red { background-color: rgba(255, 69, 0, 0.2); color: #FF4500; }
+        .extra-badge { background-color: rgba(255, 255, 255, 0.1); color: #e2e8f0; padding: 4px 12px; border-radius: 9999px; font-weight: 700; font-size: 1rem; }
+        .text-gradient { background: linear-gradient(90deg, #6a85b9, #adc6e0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .spinner { border: 4px solid rgba(255, 255, 255, 0.1); border-left-color: #ffffff; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-       .tooltip-container { position: relative; display: inline-block; cursor: pointer; }
-       .tooltip-text { visibility: hidden; background-color: #1a2a47; color: #fff; text-align: center; border-radius: 6px; padding: 5px 8px; position: absolute; z-index: 1; bottom: 125%; left: 50%; margin-left: -75px; opacity: 0; transition: opacity 0.3s; width: 150px; font-size: 0.8rem; }
-       .tooltip-text::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -5px; border-width: 5px; border-style: solid; border-color: #1a2a47 transparent transparent transparent; }
-       .tooltip-container:hover.tooltip-text { visibility: visible; opacity: 1; }
+        .tooltip-container { position: relative; display: inline-block; cursor: pointer; }
+        .tooltip-text { visibility: hidden; background-color: #1a2a47; color: #fff; text-align: center; border-radius: 6px; padding: 5px 8px; position: absolute; z-index: 1; bottom: 125%; left: 50%; margin-left: -75px; opacity: 0; transition: opacity 0.3s; width: 150px; font-size: 0.8rem; }
+        .tooltip-text::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -5px; border-width: 5px; border-style: solid; border-color: #1a2a47 transparent transparent transparent; }
+        .tooltip-container:hover .tooltip-text { visibility: visible; opacity: 1; }
     </style>
 </head>
 <body class="antialiased">
@@ -41,7 +41,7 @@
                     <h2 class="text-2xl font-bold text-gradient text-center mb-4">Atualizar Dados</h2>
                     <div class="flex flex-col md:flex-row justify-center items-center gap-4 mt-4">
                         <button id="api-coingecko-button" class="bg-blue-500 text-white font-bold py-2 px-6 rounded-full shadow-lg hover:bg-blue-600 transition-colors flex items-center justify-center gap-2">
-                            <span id="button-text-coingecko">Atualizar (CoinGecko)</span>
+                            <span id="button-text-coingecko">Atualizar Relatório</span>
                             <div id="loading-spinner-coingecko" class="spinner hidden"></div>
                         </button>
                     </div>
@@ -81,11 +81,19 @@
 
     <script>
         let charts = {};
+        const API_KEY = 'CG-yd15f3vAJQP8GNw94nKVQjW2';
+        const VS_CURRENCY = 'usd';
+        
+        // Fila para gerenciar chamadas à API
+        const apiQueue = [];
+        let isProcessingQueue = false;
 
+        // Função utilitária para criar um atraso
+        const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        // Função utilitária para formatar números em formato monetário
         const formatNumber = (num) => {
-            if (num === null |
-
-| num === undefined) return 'N/A';
+            if (num === null || num === undefined || num === 0) return 'N/A';
             if (num >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
             if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
             if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`;
@@ -93,28 +101,31 @@
             return `$${num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
         };
 
+        // Função para calcular a pontuação de potencial de um ativo
         const calculatePotentialScore = (asset) => {
-            if (!asset |
-
-| asset.marketCap === 0) return 0;
+            if (!asset || !asset.marketCap || asset.marketCap === 0) return 0;
             let score = 0;
             const priceChange = asset.price_change_percentage_24h;
             const volToMcRatio = asset.volume / asset.marketCap;
 
+            // Pontuação baseada na variação de preço em 24h
             if (priceChange > 15) score += 3;
             else if (priceChange > 5) score += 2;
             else if (priceChange > 0) score += 1;
 
+            // Pontuação baseada na relação entre volume e capitalização de mercado
             if (volToMcRatio > 0.5) score += 3;
             else if (volToMcRatio > 0.2) score += 2;
             else if (volToMcRatio > 0.1) score += 1;
 
+            // Pontuação baseada no tamanho do market cap
             if (asset.marketCap < 100e6) score += 2;
             else if (asset.marketCap < 1e9) score += 1;
 
             return score;
         };
         
+        // Função para obter o rótulo da pontuação de potencial
         const getScoreLabel = (score) => {
             if (score >= 7) return { label: 'Potencial Altíssimo', class: 'info-green' };
             if (score >= 5) return { label: 'Potencial Alto', class: 'info-green' };
@@ -122,6 +133,7 @@
             return { label: 'Potencial Baixo', class: 'info-red' };
         };
 
+        // Função para calcular os dias desde o lançamento
         const calculateDaysSinceListing = (genesisDate) => {
             if (!genesisDate) return 'N/A';
             const today = new Date();
@@ -131,21 +143,18 @@
             return diffDays;
         };
 
+        // Função para criar o HTML de um card de ativo
         const createAssetCard = (asset) => {
             const score = calculatePotentialScore(asset);
             const { label: scoreLabel, class: scoreClass } = getScoreLabel(score);
             const priceChange24h = asset.price_change_percentage_24h;
-            const priceChangeText = priceChange24h?.toFixed(2) + '%' |
-
-| 'N/A';
-            const priceChangeColor = priceChange24h >= 0? 'text-green-400' : 'text-red-400';
+            const priceChangeText = priceChange24h?.toFixed(2) + '%' || 'N/A';
+            const priceChangeColor = priceChange24h >= 0 ? 'text-green-400' : 'text-red-400';
             const daysOnMarket = calculateDaysSinceListing(asset.genesis_date);
-            const category = asset.categories?. |
+            const category = asset.categories?.[0] || "Sem Categoria";
 
-| "Sem Categoria";
-
-            const valuationContent = asset.marketCap > 0? `<div class="chart-container"><canvas id="valuation-${asset.id}"></canvas></div>` : `<div class="h-[200px] flex items-center justify-center text-center text-sm text-slate-500">Dados indisponíveis.</div>`;
-            const supplyContent = asset.circulatingSupply > 0? `<div class="chart-container"><canvas id="supply-${asset.id}"></canvas></div>` : `<div class="h-[200px] flex items-center justify-center text-center text-sm text-slate-500">Dados indisponíveis.</div>`;
+            const valuationContent = asset.marketCap > 0 ? `<div class="chart-container"><canvas id="valuation-${asset.id}"></canvas></div>` : `<div class="h-[200px] flex items-center justify-center text-center text-sm text-slate-500">Dados indisponíveis.</div>`;
+            const supplyContent = (asset.circulatingSupply > 0 && (asset.maxSupply || asset.totalSupply)) ? `<div class="chart-container"><canvas id="supply-${asset.id}"></canvas></div>` : `<div class="h-[200px] flex items-center justify-center text-center text-sm text-slate-500">Dados indisponíveis.</div>`;
             
             return `
                 <div class="bg-blue-900 rounded-2xl p-6 shadow-2xl border border-blue-800">
@@ -168,135 +177,181 @@
                         <div class="tooltip-container"><h4 class="font-semibold text-center mb-2 text-slate-300">Valuation</h4>${valuationContent}<span class="tooltip-text">Market Cap vs Valor Totalmente Diluído.</span></div>
                         <div class="tooltip-container"><h4 class="font-semibold text-center mb-2 text-slate-300">Oferta</h4>${supplyContent}<span class="tooltip-text">Moedas em circulação vs Oferta Total.</span></div>
                     </div>
-                    <div class="mt-6 text-center"><a href="details.html?id=${asset.id}" class="bg-slate-700 text-slate-200 hover:bg-slate-600 font-bold py-2 px-6 rounded-full inline-block transition-colors">Ver Detalhes</a></div>
                 </div>`;
         };
 
+        // Função para renderizar os gráficos para um ativo
         const renderCharts = (asset) => {
+            // Destrói gráficos existentes para evitar duplicatas
             if (charts[`valuation-${asset.id}`]) charts[`valuation-${asset.id}`].destroy();
             if (charts[`supply-${asset.id}`]) charts[`supply-${asset.id}`].destroy();
 
             if (asset.marketCap > 0) {
                 const valuationCtx = document.getElementById(`valuation-${asset.id}`)?.getContext('2d');
-                if (valuationCtx) charts[`valuation-${asset.id}`] = new Chart(valuationCtx, { type: 'bar', data: { labels:, datasets: [{ data: [asset.marketCap, asset.fdv |
-
-| asset.marketCap], backgroundColor: ['#6a85b9', '#adc6e0'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { ticks: { color: '#94a3b8' } } } } });
+                if (valuationCtx) {
+                    charts[`valuation-${asset.id}`] = new Chart(valuationCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Market Cap', 'Valor Diluído'],
+                            datasets: [{
+                                data: [asset.marketCap, asset.fdv || asset.marketCap],
+                                backgroundColor: ['#6a85b9', '#adc6e0']
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                y: { display: false },
+                                x: { ticks: { color: '#94a3b8' } }
+                            }
+                        }
+                    });
+                }
             }
 
             if (asset.circulatingSupply > 0) {
                 const supplyCtx = document.getElementById(`supply-${asset.id}`)?.getContext('2d');
                 if (supplyCtx) {
-                    const total = asset.maxSupply |
-
-| asset.totalSupply;
-                    const nonCirculating = total > asset.circulatingSupply? total - asset.circulatingSupply : 0;
-                    charts[`supply-${asset.id}`] = new Chart(supplyCtx, { type: 'doughnut', data: { labels: ['Em Circulação', 'Não Circulante'], datasets:, backgroundColor:, borderColor: '#0d1a2f' }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { display: true, position: 'bottom', labels: { color: '#94a3b8' } } } });
+                    const total = asset.maxSupply || asset.totalSupply;
+                    const nonCirculating = total > asset.circulatingSupply ? total - asset.circulatingSupply : 0;
+                    charts[`supply-${asset.id}`] = new Chart(supplyCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Em Circulação', 'Não Circulante'],
+                            datasets: [{
+                                data: [asset.circulatingSupply, nonCirculating],
+                                backgroundColor: ['#5B84B1', '#2f4c7d'],
+                                borderColor: '#0d1a2f'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            cutout: '70%',
+                            plugins: {
+                                legend: { display: true, position: 'bottom', labels: { color: '#94a3b8' } }
+                            }
+                        }
+                    });
                 }
             }
         };
         
+        // Função principal para renderizar uma seção da página
         const renderSection = (sectionId, data) => {
             const container = document.getElementById(sectionId);
             if (!container) return;
-            container.innerHTML = data.length === 0? `<p class="text-center text-slate-500 col-span-full">Nenhum ativo encontrado.</p>` : data.map(createAssetCard).join('');
+            container.innerHTML = data.length === 0 ? `<p class="text-center text-slate-500 col-span-full">Nenhum ativo encontrado.</p>` : data.map(createAssetCard).join('');
+            
+            // Renderiza os gráficos após os cards estarem no DOM
             setTimeout(() => data.forEach(renderCharts), 0);
         };
 
-        // Função de status centralizada
-        const updateStatus = (api, isLoading, message, isError) => {
-            const buttonId = `api-${api}-button`;
-            const textId = `button-text-${api}`;
-            const spinnerId = `loading-spinner-${api}`;
+        // Função de status centralizada para gerenciar a UX dos botões e mensagens
+        const updateStatus = (isLoading, message, isError) => {
+            const button = document.getElementById('api-coingecko-button');
+            const buttonText = document.getElementById('button-text-coingecko');
+            const spinner = document.getElementById('loading-spinner-coingecko');
             const statusMessageEl = document.getElementById('status-message');
 
-            document.getElementById(buttonId).disabled = isLoading;
-            document.getElementById(textId).textContent = isLoading? 'Buscando...' : document.getElementById(textId).dataset.originalText;
-            document.getElementById(spinnerId).classList.toggle('hidden',!isLoading);
+            button.disabled = isLoading;
+            buttonText.textContent = isLoading ? 'Buscando...' : 'Atualizar Relatório';
+            spinner.classList.toggle('hidden', !isLoading);
             
             if (message) {
                 statusMessageEl.textContent = message;
-                statusMessageEl.style.color = isError? '#FF4500' : (isLoading? '#FFD700' : '#7CFC00');
+                statusMessageEl.style.color = isError ? '#FF4500' : (isLoading ? '#FFD700' : '#7CFC00');
             }
         };
-        
-        // Função utilitária para criar um atraso
-        const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-        const fetchDataFromCoinGecko = async () => {
-            updateStatus('coingecko', true, 'Buscando dados de mercado iniciais...');
+        // Processa a fila de chamadas à API, respeitando o limite de taxa
+        const processApiQueue = async () => {
+            if (isProcessingQueue) return;
+            isProcessingQueue = true;
             
-            const apiKey = 'CG-yd15f3vAJQP8GNw94nKVQjW2';
-            const vsCurrency = 'usd';
+            const detailsMap = {};
+            const queueLength = apiQueue.length;
 
+            updateStatus(true, `Processando dados de ${queueLength} ativos... Isso pode levar um minuto.`);
+
+            for (let i = 0; i < queueLength; i++) {
+                const id = apiQueue.shift();
+                try {
+                    const res = await fetch(`https://api.coingecko.com/api/v3/coins/${id}?localization=false&tickers=false&market_data=false&community_data=false&developer_data=false&sparkline=false&x_cg_demo_api_key=${API_KEY}`);
+                    if (!res.ok) {
+                        console.error(`Falha ao buscar detalhes para o ID ${id}. Status: ${res.status}`);
+                        continue;
+                    }
+                    const coin = await res.json();
+                    detailsMap[id] = { genesis_date: coin.genesis_date, categories: coin.categories?.filter(c => c) };
+                } catch (e) {
+                    console.error(`Falha ao buscar detalhes para o ID ${id}:`, e);
+                }
+                await delay(2500); // Atraso de 2.5 segundos para respeitar o limite de taxa da API
+            }
+            
+            isProcessingQueue = false;
+            return detailsMap;
+        };
+
+        // Função principal para buscar e processar os dados da CoinGecko
+        const fetchDataFromCoinGecko = async () => {
+            updateStatus(true, 'Buscando dados primários da CoinGecko...');
+            
             try {
-                // ETAPA 1: Chamadas iniciais paralelas
-                const = await Promise.all([
-                    fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=${vsCurrency}&order=market_cap_desc&per_page=250&page=1&x_cg_demo_api_key=${apiKey}`),
-                    fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=${vsCurrency}&category=meme-token&order=market_cap_desc&per_page=50&page=1&x_cg_demo_api_key=${apiKey}`),
-                    fetch(`https://api.coingecko.com/api/v3/coins/new?x_cg_demo_api_key=${apiKey}`)
+                // ETAPA 1: Chamadas iniciais paralelas para obter os dados de mercado
+                const [marketsResponse, memecoinsResponse, newCoinsResponse] = await Promise.all([
+                    fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=${VS_CURRENCY}&order=market_cap_desc&per_page=250&page=1&x_cg_demo_api_key=${API_KEY}`),
+                    fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=${VS_CURRENCY}&category=meme-token&order=market_cap_desc&per_page=50&page=1&x_cg_demo_api_key=${API_KEY}`),
+                    fetch(`https://api.coingecko.com/api/v3/coins/new?x_cg_demo_api_key=${API_KEY}`)
                 ]);
 
-                if (!marketsResponse.ok ||!memecoinsResponse.ok ||!newCoinsResponse.ok) {
-                    const status1 = marketsResponse.status;
-                    const status2 = memecoinsResponse.status;
-                    const status3 = newCoinsResponse.status;
-                    throw new Error(`Erro na busca primária de dados. Status: ${status1}, ${status2}, ${status3}`);
+                if (!marketsResponse.ok || !memecoinsResponse.ok || !newCoinsResponse.ok) {
+                    throw new Error(`Erro na busca primária de dados. Status: ${marketsResponse.status}, ${memecoinsResponse.status}, ${newCoinsResponse.status}`);
                 }
 
                 let allMarketData = await marketsResponse.json();
                 let memecoinData = await memecoinsResponse.json();
                 let newCoinsDataRaw = await newCoinsResponse.json();
                 
-                // ETAPA 2: Busca por detalhes de moedas recém-lançadas, se existirem
+                // ETAPA 2: Busca por dados de mercado de moedas recém-lançadas
                 const newCoinIds = newCoinsDataRaw.slice(0, 50).map(c => c.id).join(',');
-                let newCoinsMarketData =;
+                let newCoinsMarketData = [];
                 if (newCoinIds) {
-                    const newCoinsMarketResponse = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=${vsCurrency}&ids=${newCoinIds}&x_cg_demo_api_key=${apiKey}`);
+                    const newCoinsMarketResponse = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=${VS_CURRENCY}&ids=${newCoinIds}&x_cg_demo_api_key=${API_KEY}`);
                     if (!newCoinsMarketResponse.ok) {
                         throw new Error(`Erro na busca de moedas novas. Status: ${newCoinsMarketResponse.status}`);
                     }
                     newCoinsMarketData = await newCoinsMarketResponse.json();
                 }
 
-                // ETAPA 3: Juntar todos os IDs únicos para buscar detalhes
-                const allIds =)].slice(0, 20);
-
-                updateStatus('coingecko', true, `Buscando detalhes de ${allIds.length} ativos... isso pode levar um minuto.`);
+                // ETAPA 3: Montar a fila de chamadas para buscar detalhes e processá-la
+                const allIds = [...new Set([
+                    ...allMarketData.map(c => c.id),
+                    ...memecoinData.map(c => c.id),
+                    ...newCoinsMarketData.map(c => c.id)
+                ])].slice(0, 20); // Limita o número de moedas para respeitar o limite de 30 chamadas
                 
-                const detailsMap = {};
-                for (const id of allIds) {
-                    try {
-                        const res = await fetch(`https://api.coingecko.com/api/v3/coins/${id}?localization=false&tickers=false&market_data=false&community_data=false&developer_data=false&sparkline=false&x_cg_demo_api_key=${apiKey}`);
-                        if (!res.ok) {
-                            console.error(`Falha ao buscar detalhes para o ID ${id}. Status: ${res.status}`);
-                            continue;
-                        }
-                        const coin = await res.json();
-                        detailsMap[id] = { genesis_date: coin.genesis_date, categories: coin.categories?.filter(c => c) };
-                    } catch (e) {
-                        console.error(`Falha ao buscar detalhes para o ID ${id}:`, e);
-                    }
-                    // Adiciona um atraso para respeitar o limite de 30 chamadas/minuto da API gratuita .
-                    await delay(2000);
-                }
+                apiQueue.push(...allIds);
+                const detailsMap = await processApiQueue();
                 
-                updateStatus('coingecko', true, 'Processando e classificando os dados...');
-
                 // ETAPA 4: Mapear, enriquecer e classificar os dados
                 const mapAndEnrich = (coin) => ({
                     id: coin.id, symbol: coin.symbol, name: coin.name, price: coin.current_price, marketCap: coin.market_cap,
                     fdv: coin.fully_diluted_valuation, volume: coin.total_volume, circulatingSupply: coin.circulating_supply,
                     maxSupply: coin.max_supply, totalSupply: coin.total_supply, price_change_percentage_24h: coin.price_change_percentage_24h,
-                    genesis_date: detailsMap[coin.id]?.genesis_date, categories: detailsMap[coin.id]?.categories |
-
-| ['Geral'],
+                    genesis_date: detailsMap[coin.id]?.genesis_date, categories: detailsMap[coin.id]?.categories || ['Geral'],
                 });
                 
                 const sortLogic = (a, b) => calculatePotentialScore(b) - calculatePotentialScore(a);
 
                 const allMappedData = allMarketData.map(mapAndEnrich);
                 
-                const mostPotential =.sort(sortLogic).slice(0, 10);
+                const mostPotential = [...allMappedData].sort(sortLogic).slice(0, 10);
                 const fundamentalCryptos = allMappedData.filter(c => c.marketCap > 1e9).sort(sortLogic).slice(0, 10);
                 const utilityTokens = allMappedData.filter(c => c.marketCap > 1e6 && c.marketCap < 1e9).sort(sortLogic).slice(0, 10);
                 const recentlyLaunched = newCoinsMarketData.map(mapAndEnrich).sort(sortLogic).slice(0, 10);
@@ -308,17 +363,14 @@
                 renderSection('new-list', recentlyLaunched);
                 renderSection('memecoin-list', memecoins);
 
-                updateStatus('coingecko', false, 'Relatório atualizado com sucesso (CoinGecko)!', false);
+                updateStatus(false, 'Relatório atualizado com sucesso (CoinGecko)!');
             } catch (e) {
-                updateStatus('coingecko', false, `Erro (CoinGecko): ${e.message}. Tente novamente.`, true);
+                updateStatus(false, `Erro (CoinGecko): ${e.message}. Tente novamente.`, true);
             }
         };
 
-        document.getElementById('api-coingecko-button').addEventListener('click', () => {
-            // Guarda o texto original do botão antes de iniciar a busca
-            document.getElementById('button-text-coingecko').dataset.originalText = 'Atualizar (CoinGecko)';
-            fetchDataFromCoinGecko();
-        });
+        // Adiciona o event listener para o botão de atualização da CoinGecko
+        document.getElementById('api-coingecko-button').addEventListener('click', fetchDataFromCoinGecko);
     </script>
 </body>
 </html>

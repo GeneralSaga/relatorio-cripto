@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório Dinâmico de Criptoativos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1a2f;
+            color: #e2e8f0;
+        }
+        .text-blue-500 { color: #5B84B1; }
+        .bg-blue-900 { background-color: #1c3358; }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 200px;
+            max-height: 220px;
+        }
+        .rsi-value {
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-weight: 700;
+            font-size: 1.25rem;
+        }
+        .rsi-over { background-color: rgba(255, 69, 0, 0.2); color: #FF4500; }
+        .rsi-under { background-color: rgba(124, 252, 0, 0.2); color: #7CFC00; }
+        .rsi-neutral { background-color: rgba(255, 215, 0, 0.2); color: #FFD700; }
+        .text-gradient {
+            background: linear-gradient(90deg, #6a85b9, #adc6e0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left-color: #ffffff;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="container mx-auto px-4 py-12 md:px-8">
+        <header class="text-center mb-16">
+            <h1 class="text-4xl md:text-6xl font-extrabold text-white">Relatório de Criptoativos</h1>
+            <p class="mt-4 max-w-3xl mx-auto text-lg text-slate-400">Clique no botão para buscar e categorizar os dados de criptoativos em tempo real.</p>
+        </header>
+
+        <main>
+            <section id="data-input" class="mb-16">
+                <div class="bg-blue-900 rounded-2xl p-6 shadow-2xl border border-blue-800 max-w-4xl mx-auto">
+                    <h2 class="text-2xl font-bold text-gradient text-center mb-4">Atualizar Dados</h2>
+                    <div class="flex flex-col md:flex-row justify-center items-center gap-4 mt-4">
+                        <button id="api-button" class="bg-blue-500 text-white font-bold py-2 px-6 rounded-full shadow-lg hover:bg-blue-600 transition-colors flex items-center justify-center gap-2">
+                            <span id="button-text">Atualizar com Dados da API</span>
+                            <div id="loading-spinner" class="spinner hidden"></div>
+                        </button>
+                    </div>
+                    <div id="status-message" class="text-center mt-4 text-sm text-red-400"></div>
+                </div>
+            </section>
+
+            <section id="most-potential" class="mb-20">
+                <h2 class="text-3xl md:text-4xl font-bold mb-8 text-center text-gradient">Ativos com Maior Potencial Hoje</h2>
+                <div id="potential-list" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8"></div>
+            </section>
+            
+            <section id="recently-launched" class="mb-20">
+                <h2 class="text-3xl md:text-4xl font-bold mb-8 text-center text-gradient">Recém-Lançadas com Potencial</h2>
+                <div id="new-list" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8"></div>
+            </section>
+            
+            <section id="cryptos" class="mb-20">
+                <h2 class="text-3xl md:text-4xl font-bold mb-8 text-center text-gradient">Criptomoedas Fundamentais</h2>
+                <div id="crypto-list" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8"></div>
+            </section>
+
+            <section id="tokens" class="mb-20">
+                <h2 class="text-3xl md:text-4xl font-bold mb-8 text-center text-gradient">Tokens de Utilidade & DeFi</h2>
+                <div id="token-list" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8"></div>
+            </section>
+
+            <section id="memecoins" class="mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold mb-8 text-center text-gradient">Memecoins Especulativas</h2>
+                <div id="memecoin-list" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8"></div>
+            </section>
+        </main>
+        <footer class="text-center border-t border-slate-700 pt-8 mt-12">
+            <p class="text-slate-500 text-sm"><strong>Aviso Legal:</strong> Este aplicativo é apenas para fins educacionais e não constitui aconselhamento financeiro. Os dados são de sua responsabilidade.</p>
+        </footer>
+    </div>
+
+    <script>
+        const formatNumber = (num) => {
+            if (num === null || num === undefined) return '$N/A';
+            if (num >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
+            if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
+            if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`;
+            return `$${num.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}`;
+        };
+        const formatSocial = (num) => {
+            if (num === null || num === undefined) return 'N/A';
+            if (num >= 1e6) return `${(num / 1e6).toFixed(1)}M`;
+            if (num >= 1e3) return `${(num / 1e3).toFixed(0)}K`;
+            return num;
+        };
+        const wrapLabel = (label) => {
+            if (label.length <= 16) return label;
+            const words = label.split(' ');
+            let lines = [];
+            let currentLine = '';
+            words.forEach(word => {
+                if ((currentLine + word).length > 16) {
+                    lines.push(currentLine.trim());
+                    currentLine = word + ' ';
+                } else {
+                    currentLine += word + ' ';
+                }
+            });
+            lines.push(currentLine.trim());
+            return lines;
+        };
+        const calculateRSI = (priceChange) => {
+            if (priceChange === null || priceChange === undefined) return 'N/A';
+            const rsi = 50 + priceChange * 2;
+            return Math.floor(Math.max(0, Math.min(100, rsi)));
+        };
+        const createAssetCard = (asset) => {
+            const rsiValue = calculateRSI(asset.price_change_percentage_24h);
+            const rsiClass = rsiValue === 'N/A' ? 'rsi-neutral' : (rsiValue > 70 ? 'rsi-over' : rsiValue < 30 ? 'rsi-under' : 'rsi-neutral');
+            
+            const rsiText = rsiValue === 'N/A' ? 'N/A' : `RSI: ${rsiValue}`;
+
+            return `
+                <div class="bg-blue-900 rounded-2xl p-6 shadow-2xl border border-blue-800">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+                        <h3 class="text-2xl font-bold text-white">${asset.name}</h3>
+                        <div class="mt-2 sm:mt-0 ${rsiClass} rsi-value">${rsiText}</div>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-center mb-6">
+                        <div>
+                            <p class="text-sm text-blue-500">Preço</p>
+                            <p class="text-xl font-semibold text-white">${asset.price < 0.01 ? '$' + asset.price.toPrecision(2) : formatNumber(asset.price)}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-blue-500">Market Cap</p>
+                            <p class="text-xl font-semibold text-white">${formatNumber(asset.marketCap)}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-blue-500">Volume (24h)</p>
+                            <p class="text-xl font-semibold text-white">${formatNumber(asset.volume)}</p>
+                        </div>
+                    </div>
+                    <p class="text-slate-300 mb-6 text-sm leading-relaxed">
+                        Análise de usabilidade e dados sociais não disponíveis via esta API.
+                    </p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="font-semibold text-center mb-2 text-slate-300">Valuation</h4>
+                            <div class="chart-container">
+                                <canvas id="valuation-${asset.id}"></canvas>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-center mb-2 text-slate-300">Oferta</h4>
+                            <div class="chart-container">
+                                <canvas id="supply-${asset.id}"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        };
+        const renderCharts = (asset) => {
+            const commonTooltipConfig = {
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            title: function(tooltipItems) {
+                                const item = tooltipItems[0];
+                                let label = item.chart.data.labels[item.dataIndex];
+                                if (Array.isArray(label)) {
+                                  return label.join(' ');
+                                } else {
+                                  return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+            const valuationCtx = document.getElementById(`valuation-${asset.id}`).getContext('2d');
+            if (valuationCtx) {
+                new Chart(valuationCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: [wrapLabel('Market Cap'), wrapLabel('Valor Diluído')],
+                        datasets: [{
+                            label: 'Valuation',
+                            data: [asset.marketCap, asset.fdv],
+                            backgroundColor: ['#6a85b9', '#adc6e0'],
+                            borderRadius: 4,
+                        }]
+                    },
+                    options: { ...commonTooltipConfig, responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { ticks: { color: '#94a3b8' } } } }
+                });
+            }
+            const supplyCtx = document.getElementById(`supply-${asset.id}`).getContext('2d');
+            if (supplyCtx) {
+                const maxSupply = asset.maxSupply || (asset.circulatingSupply ? asset.circulatingSupply * 1.5 : 0);
+                new Chart(supplyCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Em Circulação', wrapLabel('Não Circulante')],
+                        datasets: [{
+                            data: [asset.circulatingSupply || 0, asset.maxSupply ? maxSupply - asset.circulatingSupply : (asset.circulatingSupply ? maxSupply - asset.circulatingSupply : 0)],
+                            backgroundColor: ['#5B84B1', '#2f4c7d'],
+                            borderColor: '#0d1a2f',
+                            borderWidth: 4,
+                        }]
+                    },
+                    options: { ...commonTooltipConfig, responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { display: true, position: 'bottom', labels: { color: '#94a3b8' } } } }
+                });
+            }
+        };
+        
+        const renderReport = (data) => {
+            document.getElementById('potential-list').innerHTML = '';
+            document.getElementById('new-list').innerHTML = '';
+            document.getElementById('crypto-list').innerHTML = '';
+            document.getElementById('token-list').innerHTML = '';
+            document.getElementById('memecoin-list').innerHTML = '';
+            
+            data.mostPotential.forEach(asset => document.getElementById('potential-list').innerHTML += createAssetCard(asset));
+            data.recentlyLaunched.forEach(asset => document.getElementById('new-list').innerHTML += createAssetCard(asset));
+            data.cryptos.forEach(asset => document.getElementById('crypto-list').innerHTML += createAssetCard(asset));
+            data.tokens.forEach(asset => document.getElementById('token-list').innerHTML += createAssetCard(asset));
+            data.memecoins.forEach(asset => document.getElementById('memecoin-list').innerHTML += createAssetCard(asset));
+
+            data.mostPotential.forEach(renderCharts);
+            data.recentlyLaunched.forEach(renderCharts);
+            data.cryptos.forEach(renderCharts);
+            data.tokens.forEach(renderCharts);
+            data.memecoins.forEach(renderCharts);
+
+            window.scrollTo({ top: document.getElementById('most-potential').offsetTop, behavior: 'smooth' });
+        };
+
+        const fetchDataFromAPI = async () => {
+            const buttonText = document.getElementById('button-text');
+            const spinner = document.getElementById('loading-spinner');
+            const status = document.getElementById('status-message');
+
+            buttonText.textContent = 'Buscando...';
+            spinner.classList.remove('hidden');
+            status.textContent = 'Buscando e categorizando criptoativos... Por favor, aguarde.';
+            status.style.color = '#FFD700';
+            
+            // 🚨 ATENÇÃO: COLOQUE SUA CHAVE DE API AQUI!
+            const apiKey = 'CG-yd15f3vAJQP8GNw94nKVQjW2'; 
+
+            if (apiKey === 'CG-yd15f3vAJQP8GNw94nKVQjW2' || apiKey === '') {
+                status.textContent = 'Erro: Por favor, obtenha uma chave de API e a insira no código-fonte do arquivo HTML.';
+                status.style.color = '#FF4500';
+                buttonText.textContent = 'Atualizar com Dados da API';
+                spinner.classList.add('hidden');
+                return;
+            }
+
+            try {
+                const vsCurrency = 'usd';
+
+                // Busca os top 250 ativos para ter uma base ampla para categorização
+                const apiResponse = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=${vsCurrency}&per_page=250&page=1&x_cg_demo_api_key=${apiKey}`);
+                
+                if (!apiResponse.ok) {
+                    throw new Error(`Erro da API: ${apiResponse.status} ${apiResponse.statusText}`);
+                }
+                
+                const apiData = await apiResponse.json();
+                
+                const mapData = (apiItem) => ({
+                    id: apiItem.id,
+                    name: apiItem.name,
+                    price: apiItem.current_price,
+                    marketCap: apiItem.market_cap,
+                    fdv: apiItem.fully_diluted_valuation || (apiItem.market_cap ? apiItem.market_cap * 1.1 : 0),
+                    volume: apiItem.total_volume,
+                    circulatingSupply: apiItem.circulating_supply,
+                    maxSupply: apiItem.max_supply,
+                    price_change_percentage_24h: apiItem.price_change_percentage_24h,
+                    rsi: calculateRSI(apiItem.price_change_percentage_24h),
+                    usability: 'Análise de usabilidade ainda não disponível via API.',
+                });
+                
+                // Lógica para "Mais Potencial Hoje" - Maior queda de preço em 24h
+                const mostPotential = apiData
+                    .filter(item => item.price_change_percentage_24h !== null && item.price_change_percentage_24h < -5)
+                    .sort((a, b) => a.price_change_percentage_24h - b.price_change_percentage_24h)
+                    .slice(0, 5)
+                    .map(mapData);
+
+                // Lógica para "Recém-Lançadas com Potencial" - Alto volume de negociação e market cap baixo (sugere um ativo novo e em alta)
+                const recentlyLaunched = apiData
+                    .filter(item => item.market_cap_rank > 50 && (item.total_volume / item.market_cap) > 0.2)
+                    .sort((a, b) => (b.total_volume / b.market_cap) - (a.total_volume / a.market_cap))
+                    .slice(0, 5)
+                    .map(mapData);
+                    
+                // Lógica para Ativos Fundamentais: top 10 por market cap
+                const fundamentalCryptos = apiData
+                    .filter(item => item.market_cap_rank <= 10)
+                    .sort((a, b) => a.market_cap_rank - b.market_cap_rank)
+                    .map(mapData);
+                    
+                // Lógica para Tokens de Utilidade & DeFi: de 11 a 50 por market cap
+                const utilityTokens = apiData
+                    .filter(item => item.market_cap_rank > 10 && item.market_cap_rank <= 50)
+                    .sort((a, b) => a.market_cap_rank - b.market_cap_rank)
+                    .map(mapData);
+                    
+                // Lógica para Memecoins Especulativas: de 51 a 100 com nomes comuns de memecoins
+                const memecoins = apiData
+                    .filter(item => {
+                        const isMemecoin = item.name.toLowerCase().includes('doge') ||
+                                           item.name.toLowerCase().includes('shiba') ||
+                                           item.name.toLowerCase().includes('pepe') ||
+                                           item.name.toLowerCase().includes('floki') ||
+                                           item.name.toLowerCase().includes('bonk');
+                        return item.market_cap_rank > 50 && item.market_cap_rank <= 100 && isMemecoin;
+                    })
+                    .sort((a, b) => a.market_cap_rank - b.market_cap_rank)
+                    .map(mapData);
+
+                const finalData = {
+                    mostPotential: mostPotential,
+                    recentlyLaunched: recentlyLaunched,
+                    cryptos: fundamentalCryptos,
+                    tokens: utilityTokens,
+                    memecoins: memecoins
+                };
+
+                renderReport(finalData);
+                status.textContent = 'Relatório atualizado com sucesso via API!';
+                status.style.color = '#7CFC00';
+
+            } catch (e) {
+                status.textContent = `Erro ao buscar dados: ${e.message}. Verifique sua chave de API e a conexão.`;
+                status.style.color = '#FF4500';
+            } finally {
+                buttonText.textContent = 'Atualizar com Dados da API';
+                spinner.classList.add('hidden');
+            }
+        };
+
+        document.getElementById('api-button').addEventListener('click', fetchDataFromAPI);
+        
+        const initialData = {
+            "mostPotential": [],
+            "recentlyLaunched": [],
+            "cryptos": [],
+            "tokens": [],
+            "memecoins": []
+        };
+        document.addEventListener('DOMContentLoaded', () => {
+            renderReport(initialData);
+        });
+    </script>
+</body>
+</html>

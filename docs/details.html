@@ -315,12 +315,10 @@
             
             try {
                 console.log("[DEBUG] Iniciando busca de dados primários...");
-                const [marketsResponse, memecoinsResponse, trendingResponse] = await Promise.all([
-                    fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=${VS_CURRENCY}&order=market_cap_desc&per_page=250&page=1&x_cg_demo_api_key=${API_KEY}`),
-                    fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=${VS_CURRENCY}&category=meme-token&order=market_cap_desc&per_page=50&page=1&x_cg_demo_api_key=${API_KEY}`),
-                    fetch(`https://api.coingecko.com/api/v3/search/trending?x_cg_demo_api_key=${API_KEY}`)
-                ]);
-
+                const marketsResponse = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=${VS_CURRENCY}&order=market_cap_desc&per_page=250&page=1&x_cg_demo_api_key=${API_KEY}`);
+                const memecoinsResponse = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=${VS_CURRENCY}&category=meme-token&order=market_cap_desc&per_page=50&page=1&x_cg_demo_api_key=${API_KEY}`);
+                const trendingResponse = await fetch(`https://api.coingecko.com/api/v3/search/trending?x_cg_demo_api_key=${API_KEY}`);
+                
                 if (!marketsResponse.ok || !memecoinsResponse.ok || !trendingResponse.ok) {
                     throw new Error(`Erro na busca primária de dados. Status: ${marketsResponse.status}, ${memecoinsResponse.status}, ${trendingResponse.status}`);
                 }
@@ -376,4 +374,3 @@
     </script>
 </body>
 </html>
-

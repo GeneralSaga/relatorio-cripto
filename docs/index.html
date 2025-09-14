@@ -26,15 +26,15 @@
             height: 200px;
             max-height: 220px;
         }
-        .rsi-value {
+        .info-badge {
             padding: 4px 12px;
             border-radius: 9999px;
             font-weight: 700;
             font-size: 1.25rem;
         }
-        .rsi-over { background-color: rgba(255, 69, 0, 0.2); color: #FF4500; }
-        .rsi-under { background-color: rgba(124, 252, 0, 0.2); color: #7CFC00; }
-        .rsi-neutral { background-color: rgba(255, 215, 0, 0.2); color: #FFD700; }
+        .info-green { background-color: rgba(124, 252, 0, 0.2); color: #7CFC00; }
+        .info-yellow { background-color: rgba(255, 215, 0, 0.2); color: #FFD700; }
+        .info-red { background-color: rgba(255, 69, 0, 0.2); color: #FF4500; }
         .text-gradient {
             background: linear-gradient(90deg, #6a85b9, #adc6e0);
             -webkit-background-clip: text;
@@ -107,6 +107,9 @@
     </div>
 
     <script>
+        let charts = {}; // Objeto para armazenar as instâncias dos gráficos e gerenciá-las.
+
+        // Funções de formatação de dados
         const formatNumber = (num) => {
             if (num === null || num === undefined) return '$N/A';
             if (num >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
@@ -114,12 +117,25 @@
             if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`;
             return `$${num.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}`;
         };
-        const formatSocial = (num) => {
-            if (num === null || num === undefined) return 'N/A';
-            if (num >= 1e6) return `${(num / 1e6).toFixed(1)}M`;
-            if (num >= 1e3) return `${(num / 1e3).toFixed(0)}K`;
-            return num;
+
+        const getPotentialScore = (asset) => {
+            const priceChange = asset.price_change_percentage_24h;
+            const rsi = calculateRSI(priceChange);
+
+            if (rsi === 'N/A') return { score: 0, label: 'Dados Insuficientes', class: 'info-yellow' };
+
+            // Retorna um score numérico para ordenação
+            if (rsi < 30) {
+                return { score: 3, label: 'Alto Potencial (Oversold)', class: 'info-green' };
+            } else if (rsi > 70) {
+                return { score: 1, label: 'Baixo Potencial (Overbought)', class: 'info-red' };
+            } else if (priceChange < 0) {
+                return { score: 2, label: 'Potencial Moderado (Em queda)', class: 'info-yellow' };
+            } else {
+                return { score: 2, label: 'Potencial Moderado (Em alta)', class: 'info-green' };
+            }
         };
+
         const wrapLabel = (label) => {
             if (label.length <= 16) return label;
             const words = label.split(' ');
@@ -136,22 +152,22 @@
             lines.push(currentLine.trim());
             return lines;
         };
+
         const calculateRSI = (priceChange) => {
             if (priceChange === null || priceChange === undefined) return 'N/A';
             const rsi = 50 + priceChange * 2;
             return Math.floor(Math.max(0, Math.min(100, rsi)));
         };
-        const createAssetCard = (asset) => {
-            const rsiValue = calculateRSI(asset.price_change_percentage_24h);
-            const rsiClass = rsiValue === 'N/A' ? 'rsi-neutral' : (rsiValue > 70 ? 'rsi-over' : rsiValue < 30 ? 'rsi-under' : 'rsi-neutral');
-            
-            const rsiText = rsiValue === 'N/A' ? 'N/A' : `RSI: ${rsiValue}`;
 
+        // Cria o card de cada ativo
+        const createAssetCard = (asset) => {
+            const { label: potentialLabel, class: potentialClass } = getPotentialScore(asset);
+            
             return `
                 <div class="bg-blue-900 rounded-2xl p-6 shadow-2xl border border-blue-800">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
                         <h3 class="text-2xl font-bold text-white">${asset.name}</h3>
-                        <div class="mt-2 sm:mt-0 ${rsiClass} rsi-value">${rsiText}</div>
+                        <div class="mt-2 sm:mt-0 ${potentialClass} info-badge">${potentialLabel}</div>
                     </div>
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-center mb-6">
                         <div>
@@ -187,7 +203,17 @@
                 </div>
             `;
         };
+
+        // Renderiza os gráficos do Chart.js
         const renderCharts = (asset) => {
+            // Destrói os gráficos existentes antes de criar novos para evitar o erro "Canvas is already in use"
+            if (charts[`valuation-${asset.id}`]) {
+                charts[`valuation-${asset.id}`].destroy();
+            }
+            if (charts[`supply-${asset.id}`]) {
+                charts[`supply-${asset.id}`].destroy();
+            }
+
             const commonTooltipConfig = {
                 plugins: {
                     tooltip: {
@@ -207,7 +233,7 @@
             };
             const valuationCtx = document.getElementById(`valuation-${asset.id}`).getContext('2d');
             if (valuationCtx) {
-                new Chart(valuationCtx, {
+                charts[`valuation-${asset.id}`] = new Chart(valuationCtx, {
                     type: 'bar',
                     data: {
                         labels: [wrapLabel('Market Cap'), wrapLabel('Valor Diluído')],
@@ -224,7 +250,7 @@
             const supplyCtx = document.getElementById(`supply-${asset.id}`).getContext('2d');
             if (supplyCtx) {
                 const maxSupply = asset.maxSupply || (asset.circulatingSupply ? asset.circulatingSupply * 1.5 : 0);
-                new Chart(supplyCtx, {
+                charts[`supply-${asset.id}`] = new Chart(supplyCtx, {
                     type: 'doughnut',
                     data: {
                         labels: ['Em Circulação', wrapLabel('Não Circulante')],
@@ -240,19 +266,23 @@
             }
         };
         
+        // Renderiza todas as seções do relatório
         const renderReport = (data) => {
+            // Limpa o conteúdo das listas antes de renderizar
             document.getElementById('potential-list').innerHTML = '';
             document.getElementById('new-list').innerHTML = '';
             document.getElementById('crypto-list').innerHTML = '';
             document.getElementById('token-list').innerHTML = '';
             document.getElementById('memecoin-list').innerHTML = '';
             
+            // Renderiza os cards para cada categoria
             data.mostPotential.forEach(asset => document.getElementById('potential-list').innerHTML += createAssetCard(asset));
             data.recentlyLaunched.forEach(asset => document.getElementById('new-list').innerHTML += createAssetCard(asset));
             data.cryptos.forEach(asset => document.getElementById('crypto-list').innerHTML += createAssetCard(asset));
             data.tokens.forEach(asset => document.getElementById('token-list').innerHTML += createAssetCard(asset));
             data.memecoins.forEach(asset => document.getElementById('memecoin-list').innerHTML += createAssetCard(asset));
 
+            // Renderiza os gráficos para cada card
             data.mostPotential.forEach(renderCharts);
             data.recentlyLaunched.forEach(renderCharts);
             data.cryptos.forEach(renderCharts);
@@ -262,6 +292,7 @@
             window.scrollTo({ top: document.getElementById('most-potential').offsetTop, behavior: 'smooth' });
         };
 
+        // Lógica de busca e filtragem da API
         const fetchDataFromAPI = async () => {
             const buttonText = document.getElementById('button-text');
             const spinner = document.getElementById('loading-spinner');
@@ -285,6 +316,7 @@
                 
                 const apiData = await apiResponse.json();
                 
+                // Mapeia os dados da API para um formato mais simples e útil
                 const mapData = (apiItem) => ({
                     id: apiItem.id,
                     name: apiItem.name,
@@ -295,43 +327,42 @@
                     circulatingSupply: apiItem.circulating_supply,
                     maxSupply: apiItem.max_supply,
                     price_change_percentage_24h: apiItem.price_change_percentage_24h,
-                    rsi: calculateRSI(apiItem.price_change_percentage_24h),
-                    usability: 'Análise de usabilidade ainda não disponível via API.',
                 });
                 
-                const mostPotential = apiData
-                    .filter(item => item.price_change_percentage_24h !== null && item.price_change_percentage_24h < -5)
-                    .sort((a, b) => a.price_change_percentage_24h - b.price_change_percentage_24h)
-                    .slice(0, 5)
-                    .map(mapData);
+                // Filtra e ordena os dados para cada categoria, limitando a 10 ativos
+                const allMappedData = apiData.map(mapData);
+                
+                const mostPotential = allMappedData
+                    .filter(item => item.price_change_percentage_24h !== null)
+                    .sort((a, b) => getPotentialScore(b).score - getPotentialScore(a).score)
+                    .slice(0, 10);
 
-                const recentlyLaunched = apiData
-                    .filter(item => item.market_cap_rank > 50 && (item.total_volume / item.market_cap) > 0.2)
-                    .sort((a, b) => (b.total_volume / b.market_cap) - (a.total_volume / a.market_cap))
-                    .slice(0, 5)
-                    .map(mapData);
+                const recentlyLaunched = allMappedData
+                    .filter(item => item.marketCap > 100000 && (item.total_volume / item.marketCap) > 0.2)
+                    .sort((a, b) => (b.total_volume / b.marketCap) - (a.total_volume / a.marketCap))
+                    .slice(0, 10);
                     
-                const fundamentalCryptos = apiData
-                    .filter(item => item.market_cap_rank <= 10)
-                    .sort((a, b) => a.market_cap_rank - b.market_cap_rank)
-                    .map(mapData);
+                const fundamentalCryptos = allMappedData
+                    .filter(item => item.marketCap > 1e9)
+                    .sort((a, b) => b.marketCap - a.marketCap)
+                    .slice(0, 10);
                     
-                const utilityTokens = apiData
-                    .filter(item => item.market_cap_rank > 10 && item.market_cap_rank <= 50)
-                    .sort((a, b) => a.market_cap_rank - b.market_cap_rank)
-                    .map(mapData);
+                const utilityTokens = allMappedData
+                    .filter(item => item.marketCap > 100000 && item.marketCap < 1e9)
+                    .sort((a, b) => b.marketCap - a.marketCap)
+                    .slice(0, 10);
                     
-                const memecoins = apiData
+                const memecoins = allMappedData
                     .filter(item => {
                         const isMemecoin = item.name.toLowerCase().includes('doge') ||
                                            item.name.toLowerCase().includes('shiba') ||
                                            item.name.toLowerCase().includes('pepe') ||
                                            item.name.toLowerCase().includes('floki') ||
                                            item.name.toLowerCase().includes('bonk');
-                        return item.market_cap_rank > 50 && item.market_cap_rank <= 100 && isMemecoin;
+                        return item.marketCap > 10000 && isMemecoin;
                     })
-                    .sort((a, b) => a.market_cap_rank - b.market_cap_rank)
-                    .map(mapData);
+                    .sort((a, b) => b.marketCap - a.marketCap)
+                    .slice(0, 10);
 
                 const finalData = {
                     mostPotential: mostPotential,

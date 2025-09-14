@@ -272,21 +272,11 @@
             status.textContent = 'Buscando e categorizando criptoativos... Por favor, aguarde.';
             status.style.color = '#FFD700';
             
-            // 🚨 ATENÇÃO: COLOQUE SUA CHAVE DE API AQUI!
             const apiKey = 'CG-yd15f3vAJQP8GNw94nKVQjW2'; 
-
-            if (apiKey === 'CG-yd15f3vAJQP8GNw94nKVQjW2' || apiKey === '') {
-                status.textContent = 'Erro: Por favor, obtenha uma chave de API e a insira no código-fonte do arquivo HTML.';
-                status.style.color = '#FF4500';
-                buttonText.textContent = 'Atualizar com Dados da API';
-                spinner.classList.add('hidden');
-                return;
-            }
 
             try {
                 const vsCurrency = 'usd';
 
-                // Busca os top 250 ativos para ter uma base ampla para categorização
                 const apiResponse = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=${vsCurrency}&per_page=250&page=1&x_cg_demo_api_key=${apiKey}`);
                 
                 if (!apiResponse.ok) {
@@ -309,33 +299,28 @@
                     usability: 'Análise de usabilidade ainda não disponível via API.',
                 });
                 
-                // Lógica para "Mais Potencial Hoje" - Maior queda de preço em 24h
                 const mostPotential = apiData
                     .filter(item => item.price_change_percentage_24h !== null && item.price_change_percentage_24h < -5)
                     .sort((a, b) => a.price_change_percentage_24h - b.price_change_percentage_24h)
                     .slice(0, 5)
                     .map(mapData);
 
-                // Lógica para "Recém-Lançadas com Potencial" - Alto volume de negociação e market cap baixo (sugere um ativo novo e em alta)
                 const recentlyLaunched = apiData
                     .filter(item => item.market_cap_rank > 50 && (item.total_volume / item.market_cap) > 0.2)
                     .sort((a, b) => (b.total_volume / b.market_cap) - (a.total_volume / a.market_cap))
                     .slice(0, 5)
                     .map(mapData);
                     
-                // Lógica para Ativos Fundamentais: top 10 por market cap
                 const fundamentalCryptos = apiData
                     .filter(item => item.market_cap_rank <= 10)
                     .sort((a, b) => a.market_cap_rank - b.market_cap_rank)
                     .map(mapData);
                     
-                // Lógica para Tokens de Utilidade & DeFi: de 11 a 50 por market cap
                 const utilityTokens = apiData
                     .filter(item => item.market_cap_rank > 10 && item.market_cap_rank <= 50)
                     .sort((a, b) => a.market_cap_rank - b.market_cap_rank)
                     .map(mapData);
                     
-                // Lógica para Memecoins Especulativas: de 51 a 100 com nomes comuns de memecoins
                 const memecoins = apiData
                     .filter(item => {
                         const isMemecoin = item.name.toLowerCase().includes('doge') ||

@@ -61,6 +61,42 @@
                 transform: rotate(360deg);
             }
         }
+        .tooltip-container {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+        }
+        .tooltip-text {
+            visibility: hidden;
+            background-color: #1a2a47;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 8px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -75px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            width: 150px;
+            font-size: 0.8rem;
+        }
+        .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #1a2a47 transparent transparent transparent;
+        }
+        .tooltip-container:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
     </style>
 </head>
 <body class="antialiased">
@@ -193,7 +229,9 @@
                         <h3 class="text-2xl font-bold text-white">${asset.name}</h3>
                         <div class="flex items-center gap-2 mt-2 sm:mt-0">
                             <div class="${potentialClass} info-badge">${potentialLabel}</div>
-                            <div class="rsi-badge">${rsiText}</div>
+                            <div class="rsi-badge tooltip-container">${rsiText}
+                                <span class="tooltip-text">O RSI (Índice de Força Relativa) mede a velocidade e a mudança dos movimentos de preço. Acima de 70 indica "sobrecompra", abaixo de 30 indica "sobrevenda".</span>
+                            </div>
                         </div>
                     </div>
                     <div class="flex justify-center w-full mb-4">
@@ -204,9 +242,10 @@
                             <p class="text-sm text-blue-500">Preço</p>
                             <p class="text-xl font-semibold text-white">${asset.price < 0.01 ? '$' + asset.price.toPrecision(2) : formatNumber(asset.price)}</p>
                         </div>
-                        <div>
+                        <div class="tooltip-container">
                             <p class="text-sm text-blue-500">Market Cap</p>
                             <p class="text-xl font-semibold text-white">${formatNumber(asset.marketCap)}</p>
+                            <span class="tooltip-text">O Market Cap (Capitalização de Mercado) é o valor total de todas as moedas em circulação.</span>
                         </div>
                         <div>
                             <p class="text-sm text-blue-500">Volume (24h)</p>
@@ -214,13 +253,15 @@
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
+                        <div class="tooltip-container">
                             <h4 class="font-semibold text-center mb-2 text-slate-300">Valuation</h4>
                             ${valuationContent}
+                            <span class="tooltip-text">Valuation se refere à avaliação do valor total do projeto, comparando o Market Cap com o Valor Diluído (se todas as moedas fossem mineradas).</span>
                         </div>
-                        <div>
+                        <div class="tooltip-container">
                             <h4 class="font-semibold text-center mb-2 text-slate-300">Oferta</h4>
                             ${supplyContent}
+                            <span class="tooltip-text">A Oferta se refere à quantidade de moedas em circulação versus a oferta total ou máxima possível.</span>
                         </div>
                     </div>
                     <div class="mt-6 text-center">

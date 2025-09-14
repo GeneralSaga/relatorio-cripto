@@ -116,6 +116,93 @@
 
     <script>
         let charts = {}; // Objeto para armazenar as instâncias dos gráficos e gerenciá-las.
+        
+        // Mapeamento manual de categorias, pois a API de mercados não as fornece
+        const CATEGORIES = {
+            "bitcoin": "Criptomoeda",
+            "ethereum": "Criptomoeda",
+            "tether": "Stablecoin",
+            "solana": "Criptomoeda",
+            "bnb": "Token de Exchange",
+            "xrp": "Pagamento",
+            "dogecoin": "Memecoin",
+            "cardano": "Criptomoeda",
+            "shiba-inu": "Memecoin",
+            "avalanche-2": "Criptomoeda",
+            "polkadot": "Web3",
+            "chainlink": "Oracle",
+            "polygon": "Layer 2",
+            "litecoin": "Criptomoeda",
+            "tron": "Smart Contract",
+            "uniswap": "DEX",
+            "dai": "Stablecoin",
+            "cosmos": "Ecosystem",
+            "binance-usd": "Stablecoin",
+            "leo-token": "Token de Exchange",
+            "okb": "Token de Exchange",
+            "bitcoin-cash": "Criptomoeda",
+            "stellar": "Pagamento",
+            "monero": "Privacidade",
+            "ethereum-classic": "Criptomoeda",
+            "aptos": "Smart Contract",
+            "hedera-hashgraph": "Smart Contract",
+            "filecoin": "Armazenamento",
+            "lido-dao": "LSD",
+            "cronos": "Criptomoeda",
+            "internet-computer": "Web3",
+            "arbitrum": "Layer 2",
+            "the-graph": "Dados",
+            "near": "Smart Contract",
+            "vechain": "Supply Chain",
+            "render-token": "IA",
+            "algorand": "Smart Contract",
+            "quant-network": "Interoperabilidade",
+            "rocket-pool": "LSD",
+            "elrond": "Smart Contract",
+            "sui": "Smart Contract",
+            "fantom": "Smart Contract",
+            "axelar": "Interoperabilidade",
+            "injective-protocol": "DeFi",
+            "flow": "Gaming",
+            "pepe": "Memecoin",
+            "bonk": "Memecoin",
+            "floki": "Memecoin",
+            "terra-classic": "Recomendação (LUNA)",
+            "eos": "Smart Contract",
+            "pax-gold": "Ouro Tokenizado",
+            "frax-share": "Algorítmico Stable",
+            "sei-network": "Blockchain",
+            "aave": "Empréstimos DeFi",
+            "maker": "DeFi",
+            "kava": "DeFi",
+            "the-sandbox": "Metaverso",
+            "decentraland": "Metaverso",
+            "pancakeswap-token": "DEX",
+            "thorchain": "Interoperabilidade",
+            "curve-dao-token": "DeFi",
+            "gmx": "Derivativos",
+            "mina-protocol": "Privacidade",
+            "oasis-network": "Privacidade",
+            "immutable-x": "Gaming/NFTs",
+            "zilliqa": "Smart Contract",
+            "conflux-token": "PoW/PoS",
+            "enjincoin": "Gaming/NFTs",
+            "gala": "Gaming",
+            "ocean-protocol": "IA",
+            "fetch-ai": "IA",
+            "singularitynet": "IA",
+            "wazirx": "Exchange",
+            "ankr": "Web3",
+            "audius": "Música",
+            "compound-governance-token": "Empréstimos DeFi",
+            "yearn-finance": "DeFi",
+            "looksrare": "NFTs",
+            "degen": "Social",
+            "terra-luna": "Ecossistema",
+            "kaspa": "Criptomoeda",
+            "xai": "Gaming",
+            "catcoin": "Memecoin",
+        };
 
         // Funções de formatação de dados
         const formatNumber = (num) => {
@@ -176,6 +263,7 @@
             const { label: potentialLabel, class: potentialClass } = getPotentialScore(asset);
             const rsiValue = calculateRSI(asset.price_change_percentage_24h);
             const rsiText = rsiValue === 'N/A' ? 'RSI: N/A' : `RSI: ${rsiValue}`;
+            const category = CATEGORIES[asset.id] || "Sem Categoria";
 
             // Conteúdo condicional para os gráficos
             const valuationContent = hasValuationData(asset) ?
@@ -195,6 +283,9 @@
                             <div class="rsi-badge">${rsiText}</div>
                         </div>
                     </div>
+                    <div class="flex justify-center w-full mb-4">
+                        <span class="bg-slate-700 text-slate-300 rounded-full px-4 py-1 text-sm font-medium">${category}</span>
+                    </div>
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-center mb-6">
                         <div>
                             <p class="text-sm text-blue-500">Preço</p>
@@ -209,9 +300,6 @@
                             <p class="text-xl font-semibold text-white">${formatNumber(asset.volume)}</p>
                         </div>
                     </div>
-                    <p class="text-slate-300 mb-6 text-sm leading-relaxed">
-                        Análise de usabilidade e dados sociais não disponíveis via esta API.
-                    </p>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <h4 class="font-semibold text-center mb-2 text-slate-300">Valuation</h4>
@@ -221,6 +309,11 @@
                             <h4 class="font-semibold text-center mb-2 text-slate-300">Oferta</h4>
                             ${supplyContent}
                         </div>
+                    </div>
+                    <div class="mt-6 text-center">
+                        <a href="details.html?id=${asset.id}" class="bg-slate-700 text-slate-200 hover:bg-slate-600 font-bold py-2 px-6 rounded-full inline-block transition-colors">
+                            Ver Detalhes
+                        </a>
                     </div>
                 </div>
             `;
@@ -369,17 +462,17 @@
 
                 const recentlyLaunched = allMappedData
                     .filter(item => typeof item.marketCap === 'number' && item.marketCap > 1000 && item.marketCap < 10000000 && typeof item.total_volume === 'number' && item.total_volume > 0)
-                    .sort((a, b) => b.total_volume - a.total_volume)
+                    .sort((a, b) => getPotentialScore(b).score - getPotentialScore(a).score)
                     .slice(0, 10);
                     
                 const fundamentalCryptos = allMappedData
                     .filter(item => typeof item.marketCap === 'number' && item.marketCap > 1e9)
-                    .sort((a, b) => b.marketCap - a.marketCap)
+                    .sort((a, b) => getPotentialScore(b).score - getPotentialScore(a).score)
                     .slice(0, 10);
                     
                 const utilityTokens = allMappedData
                     .filter(item => typeof item.marketCap === 'number' && item.marketCap > 100000 && item.marketCap < 1e9)
-                    .sort((a, b) => b.marketCap - a.marketCap)
+                    .sort((a, b) => getPotentialScore(b).score - getPotentialScore(a).score)
                     .slice(0, 10);
                     
                 const memecoins = allMappedData
@@ -391,7 +484,7 @@
                                            item.name.toLowerCase().includes('bonk');
                         return typeof item.marketCap === 'number' && item.marketCap > 10000 && isMemecoin;
                     })
-                    .sort((a, b) => b.marketCap - a.marketCap)
+                    .sort((a, b) => getPotentialScore(b).score - getPotentialScore(a).score)
                     .slice(0, 10);
 
                 const finalData = {

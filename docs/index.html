@@ -3,49 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Relatório Dinâmico de Criptoativos</title>
+    <title>Relatório de Criptoativos</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📈</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #0d1a2f; color: #e2e8f0; }
-        .text-blue-500 { color: #5B84B1; }
         .bg-blue-900 { background-color: #1c3358; }
-        .chart-container { position: relative; width: 100%; max-width: 400px; margin-left: auto; margin-right: auto; height: 200px; max-height: 220px; }
-        .info-badge { padding: 4px 12px; border-radius: 9999px; font-weight: 700; font-size: 1rem; }
-        .info-green { background-color: rgba(124, 252, 0, 0.2); color: #7CFC00; }
-        .info-yellow { background-color: rgba(255, 215, 0, 0.2); color: #FFD700; }
-        .info-red { background-color: rgba(255, 69, 0, 0.2); color: #FF4500; }
-        .extra-badge { background-color: rgba(255, 255, 255, 0.1); color: #e2e8f0; padding: 4px 12px; border-radius: 9999px; font-weight: 700; font-size: 1rem; }
         .text-gradient { background: linear-gradient(90deg, #6a85b9, #adc6e0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .spinner { border: 4px solid rgba(255, 255, 255, 0.1); border-left-color: #ffffff; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .tooltip-container { position: relative; display: inline-block; cursor: pointer; }
-        .tooltip-text { visibility: hidden; background-color: #1a2a47; color: #fff; text-align: center; border-radius: 6px; padding: 5px 8px; position: absolute; z-index: 1; bottom: 125%; left: 50%; margin-left: -75px; opacity: 0; transition: opacity 0.3s; width: 150px; font-size: 0.8rem; }
-        .tooltip-text::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -5px; border-width: 5px; border-style: solid; border-color: #1a2a47 transparent transparent transparent; }
-        .tooltip-container:hover .tooltip-text { visibility: visible; opacity: 1; }
         .crypto-card-container { transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out; }
         .crypto-card-container:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
         .skeleton { animation: pulse 1.5s infinite; background-color: rgba(255, 255, 255, 0.1); border-radius: 8px; }
         .skeleton-text { height: 16px; margin-bottom: 8px; }
         .skeleton-title { height: 24px; margin-bottom: 12px; }
-        @keyframes pulse {
-            0% { opacity: 0.5; }
-            50% { opacity: 1; }
-            100% { opacity: 0.5; }
-        }
+        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
     </style>
 </head>
 <body class="antialiased">
     <div class="container mx-auto px-4 py-12 md:px-8">
         <header class="text-center mb-16">
             <h1 class="text-4xl md:text-6xl font-extrabold text-white">Relatório de Criptoativos</h1>
-            <p class="mt-4 max-w-3xl mx-auto text-lg text-slate-400">Clique no botão para buscar e categorizar os dados de criptoativos em tempo real.</p>
+            <p class="mt-4 max-w-3xl mx-auto text-lg text-slate-400">Clique no botão para buscar os ativos em alta do mercado.</p>
         </header>
-
         <main>
             <section id="data-input" class="mb-16">
                 <div class="bg-blue-900 rounded-2xl p-6 shadow-2xl border border-blue-800 max-w-4xl mx-auto">
@@ -59,371 +42,118 @@
                     <div id="status-message" class="text-center mt-4 text-sm text-red-400"></div>
                 </div>
             </section>
-
-            <section id="most-potential" class="mb-20">
-                <h2 class="text-3xl md:text-4xl font-bold mb-8 text-center text-gradient">Ativos em Destaque Hoje</h2>
-                <div id="potential-list" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8"></div>
-            </section>
-            
-            <section id="recently-launched" class="mb-20">
-                <h2 class="text-3xl md:text-4xl font-bold mb-8 text-center text-gradient">Recém-Lançadas em Destaque</h2>
-                <div id="new-list" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8"></div>
-            </section>
-            
-            <section id="cryptos" class="mb-20">
-                <h2 class="text-3xl md:text-4xl font-bold mb-8 text-center text-gradient">Criptomoedas Fundamentais</h2>
-                <div id="crypto-list" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8"></div>
-            </section>
-
-            <section id="tokens" class="mb-20">
-                <h2 class="text-3xl md:text-4xl font-bold mb-8 text-center text-gradient">Tokens de Utilidade & DeFi</h2>
-                <div id="token-list" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8"></div>
-            </section>
-
-            <section id="memecoins" class="mb-16">
-                <h2 class="text-3xl md:text-4xl font-bold mb-8 text-center text-gradient">Memecoins Especulativas</h2>
-                <div id="memecoin-list" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8"></div>
+            <section id="trending-cryptos" class="mb-20">
+                <h2 class="text-3xl md:text-4xl font-bold mb-8 text-center text-gradient">Em Alta (Trending)</h2>
+                <div id="trending-list" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8"></div>
             </section>
         </main>
         <footer class="text-center border-t border-slate-700 pt-8 mt-12">
-            <p class="text-slate-500 text-sm"><strong>Aviso Legal:</strong> Este relatório é gerado para fins educacionais e não constitui aconselhamento financeiro. A pontuação de potencial é baseada em um modelo algorítmico e não garante lucros.</p>
+            <p class="text-slate-500 text-sm"><strong>Aviso Legal:</strong> Este relatório é gerado para fins educacionais e não constitui aconselhamento financeiro.</p>
         </footer>
     </div>
-
     <script>
-        let charts = {};
         const API_KEY = 'CG-yd15f3vAJQP8GNw94nKVQjW2';
-        const VS_CURRENCY = 'usd';
         
-        // Fila para gerenciar chamadas à API
-        const apiQueue = [];
-        let isProcessingQueue = false;
-
-        // Função utilitária para criar um atraso
-        const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-        // Função utilitária para formatar números em formato monetário
         const formatNumber = (num) => {
-            if (num === null || num === undefined || num === 0) return 'N/A';
+            if (num === null || num === undefined) return 'N/A';
             if (num >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
             if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
             if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`;
-            if (num > 0 && num < 0.01) return `$${num.toPrecision(2)}`;
             return `$${num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
         };
-
-        // Função para calcular a pontuação de potencial de um ativo
-        const calculatePotentialScore = (asset) => {
-            if (!asset || !asset.marketCap || asset.marketCap === 0) return 0;
-            let score = 0;
-            const priceChange = asset.price_change_percentage_24h;
-            const volToMcRatio = asset.total_volume / asset.marketCap;
-
-            // Pontuação baseada na variação de preço em 24h
-            if (priceChange > 15) score += 3;
-            else if (priceChange > 5) score += 2;
-            else if (priceChange > 0) score += 1;
-
-            // Pontuação baseada na relação entre volume e capitalização de mercado
-            if (volToMcRatio > 0.5) score += 3;
-            else if (volToMcRatio > 0.2) score += 2;
-            else if (volToMcRatio > 0.1) score += 1;
-
-            // Pontuação baseada no tamanho do market cap
-            if (asset.marketCap < 100e6) score += 2;
-            else if (asset.marketCap < 1e9) score += 1;
-
-            return score;
-        };
         
-        // Função para obter o rótulo da pontuação de potencial
-        const getScoreLabel = (score) => {
-            if (score >= 7) return { label: 'Potencial Altíssimo', class: 'info-green' };
-            if (score >= 5) return { label: 'Potencial Alto', class: 'info-green' };
-            if (score >= 3) return { label: 'Potencial Moderado', class: 'info-yellow' };
-            return { label: 'Potencial Baixo', class: 'info-red' };
-        };
-
-        // Função para calcular os dias desde o lançamento
-        const calculateDaysSinceListing = (genesisDate) => {
-            if (!genesisDate) return 'N/A';
-            const today = new Date();
-            const listingDate = new Date(genesisDate);
-            const diffTime = Math.abs(today - listingDate);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            return diffDays;
-        };
-        
-        // Novo card de esqueleto para o estado de carregamento
-        const createSkeletonCard = () => {
-            return `
-                <div class="bg-blue-900 rounded-2xl p-6 shadow-2xl border border-blue-800 crypto-card-container">
-                    <div class="skeleton-title skeleton w-3/4 mb-4"></div>
-                    <div class="flex justify-center w-full mb-4">
-                        <div class="skeleton-text skeleton w-1/3"></div>
-                    </div>
-                    <div class="grid grid-cols-3 gap-4 text-center mb-6">
-                        <div class="skeleton-text skeleton"></div>
-                        <div class="skeleton-text skeleton"></div>
-                        <div class="skeleton-text skeleton"></div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="skeleton h-20"></div>
-                        <div class="skeleton h-20"></div>
-                    </div>
-                </div>`;
-        };
-
-        // Função para criar o HTML de um card de ativo
         const createAssetCard = (asset) => {
-            const score = calculatePotentialScore(asset);
-            const { label: scoreLabel, class: scoreClass } = getScoreLabel(score);
-            const priceChange24h = asset.price_change_percentage_24h;
-            const priceChangeText = priceChange24h?.toFixed(2) + '%' || 'N/A';
-            const priceChangeColor = priceChange24h >= 0 ? 'text-green-400' : 'text-red-400';
-            const daysOnMarket = calculateDaysSinceListing(asset.genesis_date);
-            const category = asset.categories?.[0] || "Sem Categoria";
-
-            const valuationContent = asset.marketCap > 0 ? `<div class="chart-container"><canvas id="valuation-${asset.id}"></canvas></div>` : `<div class="h-[200px] flex items-center justify-center text-center text-sm text-slate-500">Dados indisponíveis.</div>`;
-            const supplyContent = (asset.circulating_supply > 0 && (asset.max_supply || asset.total_supply)) ? `<div class="chart-container"><canvas id="supply-${asset.id}"></canvas></div>` : `<div class="h-[200px] flex items-center justify-center text-center text-sm text-slate-500">Dados indisponíveis.</div>`;
-            
+            const price = asset.item.price_btc * 60000;
             return `
                 <div class="bg-blue-900 rounded-2xl p-6 shadow-2xl border border-blue-800 crypto-card-container">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
-                        <h3 class="text-2xl font-bold text-white">${asset.name}</h3>
-                        <div class="flex items-center gap-2 mt-2 sm:mt-0">
-                            <div class="${scoreClass} info-badge">${scoreLabel}</div>
-                            <div class="extra-badge ${priceChangeColor}">${priceChangeText}</div>
+                    <div class="flex items-center gap-4 mb-4">
+                        <img src="${asset.item.large}" alt="${asset.item.name}" class="w-12 h-12 rounded-full">
+                        <div class="flex-1">
+                            <h3 class="text-2xl font-bold text-white">${asset.item.name} (${asset.item.symbol.toUpperCase()})</h3>
                         </div>
                     </div>
-                    <div class="flex justify-center w-full mb-4">
-                        <span class="bg-slate-700 text-slate-300 rounded-full px-4 py-1 text-sm font-medium">${category}</span>
-                    </div>
-                    <div class="grid grid-cols-3 gap-4 text-center mb-6">
-                        <div><p class="text-sm text-blue-500">Preço 📈</p><p class="text-xl font-semibold text-white">${formatNumber(asset.current_price)}</p></div>
-                        <div class="tooltip-container"><p class="text-sm text-blue-500">Market Cap 📊</p><p class="text-xl font-semibold text-white">${formatNumber(asset.marketCap)}</p><span class="tooltip-text">Valor total das moedas em circulação.</span></div>
-                        <div><p class="text-sm text-blue-500">Dias no Mercado ⏳</p><p class="text-xl font-semibold text-white">${daysOnMarket}</p></div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="tooltip-container"><h4 class="font-semibold text-center mb-2 text-slate-300">Valuation</h4>${valuationContent}<span class="tooltip-text">Market Cap vs Valor Totalmente Diluído.</span></div>
-                        <div class="tooltip-container"><h4 class="font-semibold text-center mb-2 text-slate-300">Oferta</h4>${supplyContent}<span class="tooltip-text">Moedas em circulação vs Oferta Total.</span></div>
+                    <div class="flex justify-between items-center text-center mb-6">
+                        <div>
+                            <p class="text-sm text-blue-500">Rank</p>
+                            <p class="text-xl font-semibold text-white">${asset.item.market_cap_rank}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-blue-500">Preço</p>
+                            <p class="text-xl font-semibold text-white">${formatNumber(price)}</p>
+                        </div>
                     </div>
                 </div>`;
         };
-
-        // Função para renderizar os gráficos para um ativo
-        const renderCharts = (asset) => {
-            // Destrói gráficos existentes para evitar duplicatas
-            if (charts[`valuation-${asset.id}`]) charts[`valuation-${asset.id}`].destroy();
-            if (charts[`supply-${asset.id}`]) charts[`supply-${asset.id}`].destroy();
-
-            if (asset.marketCap > 0) {
-                const valuationCtx = document.getElementById(`valuation-${asset.id}`)?.getContext('2d');
-                if (valuationCtx) {
-                    charts[`valuation-${asset.id}`] = new Chart(valuationCtx, {
-                        type: 'bar',
-                        data: {
-                            labels: ['Market Cap', 'Valor Diluído'],
-                            datasets: [{
-                                data: [asset.marketCap, asset.fully_diluted_valuation || asset.marketCap],
-                                backgroundColor: ['#6a85b9', '#adc6e0']
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: { display: false }
-                            },
-                            scales: {
-                                y: { display: false },
-                                x: { ticks: { color: '#94a3b8' } }
-                            }
-                        }
-                    });
-                }
-            }
-
-            if (asset.circulating_supply > 0) {
-                const supplyCtx = document.getElementById(`supply-${asset.id}`)?.getContext('2d');
-                if (supplyCtx) {
-                    const total = asset.max_supply || asset.total_supply;
-                    const nonCirculating = total > asset.circulating_supply ? total - asset.circulating_supply : 0;
-                    charts[`supply-${asset.id}`] = new Chart(supplyCtx, {
-                        type: 'doughnut',
-                        data: {
-                            labels: ['Em Circulação', 'Não Circulante'],
-                            datasets: [{
-                                data: [asset.circulating_supply, nonCirculating],
-                                backgroundColor: ['#5B84B1', '#2f4c7d'],
-                                borderColor: '#0d1a2f'
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            cutout: '70%',
-                            plugins: {
-                                legend: { display: true, position: 'bottom', labels: { color: '#94a3b8' } }
-                            }
-                        }
-                    });
-                }
+        
+        const createSkeletonCard = () => {
+             return `
+                <div class="bg-blue-900 rounded-2xl p-6 shadow-2xl border border-blue-800 crypto-card-container">
+                    <div class="flex items-center gap-4 mb-4 animate-pulse">
+                        <div class="w-12 h-12 rounded-full bg-slate-700"></div>
+                        <div class="flex-1">
+                            <div class="skeleton-title w-3/4"></div>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center text-center mb-6 animate-pulse">
+                        <div>
+                            <div class="skeleton-text w-12"></div>
+                            <div class="skeleton-text w-16"></div>
+                        </div>
+                        <div>
+                            <div class="skeleton-text w-12"></div>
+                            <div class="skeleton-text w-16"></div>
+                        </div>
+                    </div>
+                </div>`;
+        };
+        
+        const renderSkeletons = () => {
+            const container = document.getElementById('trending-list');
+            if (container) {
+                container.innerHTML = Array(3).fill(createSkeletonCard()).join('');
             }
         };
         
-        // Função principal para renderizar uma seção da página
-        const renderSection = (sectionId, data) => {
-            const container = document.getElementById(sectionId);
-            if (!container) return;
-            container.innerHTML = data.length === 0 ? `<p class="text-center text-slate-500 col-span-full">Nenhum ativo encontrado.</p>` : data.map(createAssetCard).join('');
-            
-            // Renderiza os gráficos após os cards estarem no DOM
-            setTimeout(() => data.forEach(renderCharts), 0);
-        };
-
-        // Função de status centralizada para gerenciar a UX dos botões e mensagens
         const updateStatus = (isLoading, message, isError) => {
             const button = document.getElementById('api-coingecko-button');
             const buttonText = document.getElementById('button-text-coingecko');
             const spinner = document.getElementById('loading-spinner-coingecko');
             const statusMessageEl = document.getElementById('status-message');
-
             button.disabled = isLoading;
             buttonText.textContent = isLoading ? 'Buscando...' : 'Atualizar Relatório';
             spinner.classList.toggle('hidden', !isLoading);
-            
             if (message) {
                 statusMessageEl.textContent = message;
                 statusMessageEl.style.color = isError ? '#FF4500' : (isLoading ? '#FFD700' : '#7CFC00');
             }
         };
 
-        const renderSkeletons = () => {
-            const sections = ['potential-list', 'new-list', 'crypto-list', 'token-list', 'memecoin-list'];
-            sections.forEach(sectionId => {
-                const container = document.getElementById(sectionId);
-                if (container) {
-                    container.innerHTML = Array(9).fill(createSkeletonCard()).join('');
-                }
-            });
-        };
-
-        // Processa a fila de chamadas à API, respeitando o limite de taxa
-        const processApiQueue = async () => {
-            if (isProcessingQueue) return;
-            isProcessingQueue = true;
-            
-            const detailsMap = {};
-            const queueLength = apiQueue.length;
-
-            updateStatus(true, `Processando dados de ${queueLength} ativos... Isso pode levar um minuto.`);
-            console.log(`[DEBUG] Fila de API iniciada. ${queueLength} itens para processar.`);
-
-            for (let i = 0; i < queueLength; i++) {
-                const id = apiQueue.shift();
-                try {
-                    console.log(`[DEBUG] Chamando API para o ativo: ${id}`);
-                    const res = await fetch(`https://api.coingecko.com/api/v3/coins/${id}?localization=false&tickers=false&market_data=false&community_data=false&developer_data=false&sparkline=false&x_cg_demo_api_key=${API_KEY}`);
-                    if (!res.ok) {
-                        console.error(`[ERRO] Falha ao buscar detalhes para o ID ${id}. Status: ${res.status}`);
-                        throw new Error(`Erro na busca de detalhes do ativo. Status: ${res.status}`);
-                    }
-                    const coin = await res.json();
-                    detailsMap[id] = { genesis_date: coin.genesis_date, categories: coin.categories?.filter(c => c) };
-                    console.log(`[DEBUG] Detalhes do ativo ${id} obtidos com sucesso.`);
-                } catch (e) {
-                    console.error(`[ERRO] Falha ao buscar detalhes para o ID ${id}:`, e);
-                }
-                await delay(2500); // Atraso de 2.5 segundos para respeitar o limite de taxa da API
-            }
-            
-            isProcessingQueue = false;
-            console.log("[DEBUG] Fila de API processada com sucesso.");
-            return detailsMap;
-        };
-
-        // Função principal para buscar e processar os dados da CoinGecko
         const fetchDataFromCoinGecko = async () => {
-            updateStatus(true, 'Buscando dados primários da CoinGecko...');
+            updateStatus(true, 'Iniciando busca de dados da CoinGecko...');
             renderSkeletons();
             
             try {
-                console.log("[DEBUG] Iniciando busca de dados primários...");
-                // ETAPA 1: Chamadas iniciais paralelas para obter os dados de mercado
-                const [marketsResponse, memecoinsResponse, newCoinsResponse] = await Promise.all([
-                    fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=${VS_CURRENCY}&order=market_cap_desc&per_page=250&page=1&x_cg_demo_api_key=${API_KEY}`),
-                    fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=${VS_CURRENCY}&category=meme-token&order=market_cap_desc&per_page=50&page=1&x_cg_demo_api_key=${API_KEY}`),
-                    fetch(`https://api.coingecko.com/api/v3/coins/new?x_cg_demo_api_key=${API_KEY}`)
-                ]);
-
-                if (!marketsResponse.ok || !memecoinsResponse.ok || !newCoinsResponse.ok) {
-                    throw new Error(`Erro na busca primária de dados. Status: ${marketsResponse.status}, ${memecoinsResponse.status}, ${newCoinsResponse.status}`);
+                const trendingResponse = await fetch(`https://api.coingecko.com/api/v3/search/trending?x_cg_demo_api_key=${API_KEY}`);
+                
+                if (!trendingResponse.ok) {
+                    throw new Error(`Erro na busca de dados. Status: ${trendingResponse.status}`);
                 }
-
-                let allMarketData = await marketsResponse.json();
-                let memecoinData = await memecoinsResponse.json();
-                let newCoinsDataRaw = await newCoinsResponse.json();
                 
-                // ETAPA 2: Busca por dados de mercado de moedas recém-lançadas
-                const newCoinIds = newCoinsDataRaw.slice(0, 50).map(c => c.id).join(',');
-                let newCoinsMarketData = [];
-                if (newCoinIds) {
-                    console.log("[DEBUG] Buscando dados de mercado para moedas recém-lançadas...");
-                    const newCoinsMarketResponse = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=${VS_CURRENCY}&ids=${newCoinIds}&x_cg_demo_api_key=${API_KEY}`);
-                    if (!newCoinsMarketResponse.ok) {
-                        throw new Error(`Erro na busca de moedas novas. Status: ${newCoinsMarketResponse.status}`);
-                    }
-                    newCoinsMarketData = await newCoinsMarketResponse.json();
-                    console.log("[DEBUG] Dados de moedas recém-lançadas obtidos.");
-                }
-
-                // ETAPA 3: Montar a fila de chamadas para buscar detalhes e processá-la
-                const allIds = [...new Set([
-                    ...allMarketData.map(c => c.id),
-                    ...memecoinData.map(c => c.id),
-                    ...newCoinsMarketData.map(c => c.id)
-                ])].slice(0, 20); // Limita o número de moedas para respeitar o limite de 30 chamadas
+                const trendingData = await trendingResponse.json();
+                const trendingCoins = trendingData.coins;
                 
-                apiQueue.push(...allIds);
-                const detailsMap = await processApiQueue();
+                const trendingListContainer = document.getElementById('trending-list');
+                trendingListContainer.innerHTML = trendingCoins.map(createAssetCard).join('');
                 
-                // ETAPA 4: Mapear, enriquecer e classificar os dados
-                const mapAndEnrich = (coin) => ({
-                    id: coin.id, symbol: coin.symbol, name: coin.name, current_price: coin.current_price, marketCap: coin.market_cap,
-                    fully_diluted_valuation: coin.fully_diluted_valuation, total_volume: coin.total_volume, circulating_supply: coin.circulating_supply,
-                    max_supply: coin.max_supply, total_supply: coin.total_supply, price_change_percentage_24h: coin.price_change_percentage_24h,
-                    genesis_date: detailsMap[coin.id]?.genesis_date, categories: detailsMap[coin.id]?.categories || ['Geral'],
-                });
+                updateStatus(false, 'Relatório atualizado com sucesso!', false);
                 
-                const sortLogic = (a, b) => calculatePotentialScore(b) - calculatePotentialScore(a);
-
-                const allMappedData = allMarketData.map(mapAndEnrich);
-                
-                const mostPotential = [...allMappedData].sort(sortLogic).slice(0, 10);
-                const fundamentalCryptos = allMappedData.filter(c => c.marketCap > 1e9).sort(sortLogic).slice(0, 10);
-                const utilityTokens = allMappedData.filter(c => c.marketCap > 1e6 && c.marketCap < 1e9).sort(sortLogic).slice(0, 10);
-                const recentlyLaunched = newCoinsMarketData.map(mapAndEnrich).sort(sortLogic).slice(0, 10);
-                const memecoins = memecoinData.map(mapAndEnrich).sort(sortLogic).slice(0, 10);
-                
-                renderSection('potential-list', mostPotential);
-                renderSection('crypto-list', fundamentalCryptos);
-                renderSection('token-list', utilityTokens);
-                renderSection('new-list', recentlyLaunched);
-                renderSection('memecoin-list', memecoins);
-
-                updateStatus(false, 'Relatório atualizado com sucesso!');
-                console.log("[DEBUG] Relatório renderizado.");
-
             } catch (e) {
                 console.error("[ERRO] Falha geral ao buscar dados:", e);
                 updateStatus(false, `Erro: ${e.message}. Tente novamente.`, true);
             }
         };
-
-        // Adiciona o event listener para o botão de atualização da CoinGecko
+        
         document.getElementById('api-coingecko-button').addEventListener('click', fetchDataFromCoinGecko);
     </script>
 </body>
 </html>
-

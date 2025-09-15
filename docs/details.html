@@ -27,7 +27,7 @@
     <div class="container mx-auto px-4 py-12 md:px-8">
         <header class="text-center mb-16">
             <h1 class="text-4xl md:text-6xl font-extrabold text-white">Relatório de Criptoativos</h1>
-            <p class="mt-4 max-w-3xl mx-auto text-lg text-slate-400">Clique no botão para buscar e categorizar os dados de criptoativos em tempo real.</p>
+            <p class="mt-4 max-w-3xl mx-auto text-lg text-slate-400">Clique no botão para buscar os ativos em alta do mercado.</p>
         </header>
         <main>
             <section id="data-input" class="mb-16">
@@ -63,6 +63,7 @@
         };
         
         const createAssetCard = (asset) => {
+            const price = asset.item.price_btc * 60000;
             return `
                 <div class="bg-blue-900 rounded-2xl p-6 shadow-2xl border border-blue-800 crypto-card-container">
                     <div class="flex items-center gap-4 mb-4">
@@ -78,7 +79,7 @@
                         </div>
                         <div>
                             <p class="text-sm text-blue-500">Preço</p>
-                            <p class="text-xl font-semibold text-white">${formatNumber(asset.item.price_btc * 60000)}</p>
+                            <p class="text-xl font-semibold text-white">${formatNumber(price)}</p>
                         </div>
                     </div>
                 </div>`;
